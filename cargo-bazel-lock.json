@@ -1,5 +1,5 @@
 {
-  "checksum": "02ffe81b9f6df472ac84470d91e859e6767eda65337426305c108f5647d5886f",
+  "checksum": "1b745bfe422f99bdf9b2cd1d3a50b62a5033e72a412ddfea1cda61f33e18b9c0",
   "crates": {
     "aho-corasick 1.1.3": {
       "name": "aho-corasick",
@@ -68,8 +68,8 @@
             "-p1"
           ],
           "patches": [
-            "@aws_lc_repro//patches/aws-lc-fips-sys-provide-go.patch",
-            "@aws_lc_repro//patches/aws-lc-fips-sys-use-ar-as-ranlib.patch"
+            "@aws_lc_repro//patches:aws-lc-fips-sys-provide-go.patch",
+            "@aws_lc_repro//patches:aws-lc-fips-sys-use-ar-as-ranlib.patch"
           ]
         }
       },

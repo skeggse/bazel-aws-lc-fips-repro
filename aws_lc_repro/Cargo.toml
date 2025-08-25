@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aws-lc-fips-sys = { workspace = true }
+aws-lc-fips-sys = "0.13.7"

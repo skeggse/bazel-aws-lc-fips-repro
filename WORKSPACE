@@ -1,6 +1,5 @@
 workspace(name = "aws_lc_repro")
 
-
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
@@ -11,8 +10,8 @@ http_archive(
 )
 
 load("@rules_python//python:repositories.bzl", "py_repositories")
-py_repositories()
 
+py_repositories()
 
 # Rules Rust
 http_archive(
@@ -40,6 +39,14 @@ load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencie
 rust_register_toolchains(
     edition = "2021",
     extra_target_triples = SUPPORTED_PLATFORMS,
+    sha256s = {
+        "rustc-1.86.0-aarch64-apple-darwin.tar.xz": "23b8f52102249a47ab5bc859d54c9a3cb588a3259ba3f00f557d50edeca4fde9",
+        "clippy-1.86.0-aarch64-apple-darwin.tar.xz": "239fa3a604b124f0312f2af08537874a1227dba63385484b468cca62e7c4f2f2",
+        "cargo-1.86.0-aarch64-apple-darwin.tar.xz": "3cb13873d48c3e1e4cc684d42c245226a11fba52af6b047c3346ed654e7a05c0",
+        "rustfmt-1.86.0-aarch64-apple-darwin.tar.xz": "45e2d3543ea1abc2aa5dad894452c848bf2c75df83c8b175c418166baee09d37",
+        "llvm-tools-1.86.0-aarch64-apple-darwin.tar.xz": "04d3618c686845853585f036e3211eb9e18f2d290f4610a7a78bdc1fcce1ebd9",
+        "rust-std-1.86.0-aarch64-apple-darwin.tar.xz": "0fb121fb3b8fa9027d79ff598500a7e5cd086ddbc3557482ed3fdda00832c61b",
+    },
     versions = [RUST_VERSION],
 )
 
@@ -159,8 +166,8 @@ crates_repository(
                 patch_args = ["-p1"],
                 # Apply patches for cross-compilation support
                 patches = [
-                    "@aws_lc_repro//patches/aws-lc-fips-sys-provide-go.patch",
-                    "@aws_lc_repro//patches/aws-lc-fips-sys-use-ar-as-ranlib.patch",
+                    "@aws_lc_repro//patches:aws-lc-fips-sys-provide-go.patch",
+                    "@aws_lc_repro//patches:aws-lc-fips-sys-use-ar-as-ranlib.patch",
                 ],
             ),
         ],
