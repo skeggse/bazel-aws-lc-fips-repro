@@ -153,6 +153,6 @@ crates_repository(
     supported_platform_triples = SUPPORTED_PLATFORMS,
 )
 
-# load("@rust_crate_index//:defs.bzl", "crate_repositories")
+load("@rust_crate_index//:defs.bzl", "crate_repositories")
 
-# crate_repositories()
+crate_repositories()
