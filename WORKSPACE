@@ -5,13 +5,11 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # Rules Rust
 http_archive(
     name = "rules_rust",
-    sha256 = "f1306aac0b258b790df01ad9abc6abb0df0b65416c74b4ef27f4aab298780a64",
-    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/0.56.0/rules_rust-0.56.0.tar.gz"],
+    sha256 = "09e17b47c0150465631aa319f2742760a43ededab2e9c012f91d0ae2eff02268",
+    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/0.59.2/rules_rust-0.59.2.tar.gz"],
 )
 
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
-
-rules_rust_dependencies()
 
 RUST_VERSION = "1.86.0"
 
@@ -22,14 +20,16 @@ SUPPORTED_PLATFORMS = [
     "aarch64-unknown-linux-gnu",
 ]
 
+rules_rust_dependencies()
+
+# Crate Universe for managing Rust dependencies
+load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
+
 rust_register_toolchains(
     edition = "2021",
     extra_target_triples = SUPPORTED_PLATFORMS,
     versions = [RUST_VERSION],
 )
-
-# Crate Universe for managing Rust dependencies
-load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
 
 crate_universe_dependencies()
 
@@ -46,6 +46,17 @@ http_archive(
 load("@hermetic_cc_toolchain//toolchain:defs.bzl", zig_toolchains = "toolchains")
 
 zig_toolchains()
+
+http_archive(
+    name = "aspect_bazel_lib",
+    integrity = "sha256-NSKJX6E7l+iyfjtkIEVoKqQjOuGmsniq1qO0g1AdyfI=",
+    strip_prefix = "bazel-lib-2.20.0",
+    url = "https://github.com/bazel-contrib/bazel-lib/releases/download/v2.20.0/bazel-lib-v2.20.0.tar.gz",
+)
+
+load("@aspect_bazel_lib//lib:repositories.bzl", "register_coreutils_toolchains")
+
+register_coreutils_toolchains()
 
 # Register Zig toolchains for cross-compilation
 register_toolchains(
@@ -143,7 +154,7 @@ crates_repository(
         ],
     },
     cargo_lockfile = "//:Cargo.lock",
-    isolated = False,  # Allow access to host cargo registry for index
+    isolated = True,  # Allow access to host cargo registry for index
     lockfile = "//:cargo-bazel-lock.json",
     manifests = [
         "//:Cargo.toml",
