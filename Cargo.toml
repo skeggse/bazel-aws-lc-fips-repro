@@ -2,9 +2,25 @@
 members = ["aws_lc_repro"]
 resolver = "2"
 
-[workspace.dependencies]
-aws-lc-fips-sys = "0.13.7"
-
-[workspace.patch.crates-io]
-# Use the same cc-rs fork as the monorepo for zig compatibility
+[patch.crates-io]
+# TODO: Stop using this fork once https://github.com/ziglang/zig/issues/4911 is resolved.
+# We use `hermetic_cc_toolchain` when compiling with bazel, which uses `zig cc` under the hood.
+# Unfortunately, this occasionally causes issues - see
+# https://github.com/bazelbuild/rules_rust/issues/2529 for an example.
+#
+# In particular, `zig cc` expects to be passed different `--target` arguments than `llvm` does,
+# which is problematic when compiling for certain targets (e.g. `x86_64-unknown-linux-gcc`).
+# Ideally this would be fixed either:
+# - upstream in `zig cc`, by better matching LLVM
+# - in `hermetic_cc_toolchain`, by preprocessing `--target` arguments
+# - or in our bazel `cc_toolchain` configuration by preprocessing `--target` arguments
+#
+# In the meantime, we fork `cc-rs` (the standard crate for interacting with
+# LLVM) to work around this issue by passing `--target` arguments that `zig cc`
+# expects.  This isn't as bad as it sounds because `cc-rs` is a stable library
+# with few functional changes at this point and the changes in our fork are very small.
+#
+# NOTE: This workaround currently only supports a few `<foo>-unknown-linux-gcc` architectures.
+# NOTE: If this stops working after changing Rust dependencies, sync the fork
+# with the latest version of `cc-rs`.
 cc = { git = "https://github.com/Asana/cc-rs.git", branch = "main" }
