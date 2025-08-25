@@ -99,9 +99,9 @@ crates_repository(
                 build_script_data = [
                     "@rules_foreign_cc//toolchains:current_cmake_toolchain",
                     "@go_sdk//:files",  # Provide the entire Go SDK
-                    "@asana2//third_party/rust:ranlib_wrapper.sh",
-                    "@asana2//third_party/rust:cc_wrapper.sh",
-                    "@asana2//third_party/rust:ld_wrapper.sh",
+                    "@aws_lc_repro//:ranlib_wrapper.sh",
+                    "@aws_lc_repro//:cc_wrapper.sh",
+                    "@aws_lc_repro//:ld_wrapper.sh",
                 ],
                 build_script_env = {
                     # Provide Go binary path to the build script
@@ -114,13 +114,13 @@ crates_repository(
                     # Provide the path to the ranlib wrapper script.
                     # This is used to ensure that the `ar` tool is used as a ranlib
                     # when cross-compiling, as the `ranlib` tool may not be available.
-                    "RANLIB_WRAPPER": "$(execpath @asana2//third_party/rust:ranlib_wrapper.sh)",
+                    "RANLIB_WRAPPER": "$(execpath @aws_lc_repro//:ranlib_wrapper.sh)",
                     # Provide the path to the C compiler wrapper script.
                     # This works around zig compiler producing object files with -S flag
-                    "CC_WRAPPER": "$(execpath @asana2//third_party/rust:cc_wrapper.sh)",
+                    "CC_WRAPPER": "$(execpath @aws_lc_repro//:cc_wrapper.sh)",
                     # Provide the path to the linker wrapper script.
                     # This converts bare linker flags to -Wl, prefixed flags
-                    "LD_WRAPPER": "$(execpath @asana2//third_party/rust:ld_wrapper.sh)",
+                    "LD_WRAPPER": "$(execpath @aws_lc_repro//:ld_wrapper.sh)",
                     # It's pretty challenging to statically cross-compile this library using
                     # zig due to the delocation requirements for FIPS, so we instead
                     # dynamically link.
@@ -143,7 +143,7 @@ crates_repository(
         ],
     },
     cargo_lockfile = "//:Cargo.lock",
-    isolated = True,  # Ensure hermeticity
+    isolated = False,  # Allow access to host cargo registry for index
     lockfile = "//:cargo-bazel-lock.json",
     manifests = [
         "//:Cargo.toml",

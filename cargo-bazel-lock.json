@@ -2339,7 +2339,7 @@
         ],
         "data": {
           "common": [
-            "@asana2//third_party/rust:ranlib_wrapper.sh",
+            "//third_party/rust:ranlib_wrapper.sh",
             "@go_sdk//:files",
             "@rules_foreign_cc//toolchains:current_cmake_toolchain"
           ],
@@ -2384,7 +2384,7 @@
           "common": {
             "CMAKE": "$${pwd}/$(CMAKE)",
             "GO_BINARY": "$(execpath @go_sdk//:bin/go)",
-            "RANLIB_WRAPPER": "$(execpath @asana2//third_party/rust:ranlib_wrapper.sh)"
+            "RANLIB_WRAPPER": "$(execpath //third_party/rust:ranlib_wrapper.sh)"
           },
           "selects": {}
         },
