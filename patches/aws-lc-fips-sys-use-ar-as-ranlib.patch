@@ -1,0 +1,63 @@
+--- a/builder/cmake_builder.rs
++++ b/builder/cmake_builder.rs
+@@ -100,6 +100,60 @@ impl CmakeBuilder {
+ 
+         let mut cmake_cfg = self.get_cmake_config();
+ 
++        // Enable verbose output to debug toolchain issues
++        cmake_cfg.define("CMAKE_VERBOSE_MAKEFILE", "ON");
++        emit_warning("Enabling CMAKE_VERBOSE_MAKEFILE for debugging");
++
++        // Prevent Make from deleting intermediate files on error for debugging
++        // The -k flag keeps going after errors, preserving more intermediate files
++        env::set_var("MAKEFLAGS", "-k");
++        emit_warning("Setting MAKEFLAGS=-k to preserve intermediate files on error");
++
++        // Use wrapper for C compiler to work around zig not producing assembly with -S
++        if let Ok(cc_wrapper) = env::var("CC_WRAPPER") {
++            emit_warning(&format!("Using CC_WRAPPER as CMAKE_C_COMPILER: {}", cc_wrapper));
++            cmake_cfg.define("CMAKE_C_COMPILER", &cc_wrapper);
++            // Also set as ASM compiler since it can handle assembly
++            cmake_cfg.define("CMAKE_ASM_COMPILER", &cc_wrapper);
++        } else if let Ok(cc) = env::var("CC") {
++            // Fallback to direct CC if no wrapper provided
++            emit_warning(&format!("Using CC as CMAKE_C_COMPILER for cross-compilation: {}", cc));
++            cmake_cfg.define("CMAKE_C_COMPILER", &cc);
++        }
++
++        // Use the AR tool from environment for cross-compilation
++        if let Ok(ar) = env::var("AR") {
++            emit_warning(&format!("Using AR as CMAKE_AR for cross-compilation: {}", ar));
++            cmake_cfg.define("CMAKE_AR", &ar);
++        }
++
++        // Set the linker for cross-compilation using wrapper if available
++        if let Ok(ld_wrapper) = env::var("LD_WRAPPER") {
++            emit_warning(&format!("Using LD_WRAPPER as CMAKE_LINKER for cross-compilation: {}", ld_wrapper));
++            cmake_cfg.define("CMAKE_LINKER", &ld_wrapper);
++        } else if let Ok(ld) = env::var("LD") {
++            emit_warning(&format!("Using LD as CMAKE_LINKER for cross-compilation: {}", ld));
++            cmake_cfg.define("CMAKE_LINKER", &ld);
++            // When using clang/zig as linker, we need to prefix linker flags with -Wl,
++            if ld.contains("zig") || ld.contains("clang") {
++                cmake_cfg.define("CMAKE_EXE_LINKER_FLAGS", "-fuse-ld=lld");
++                cmake_cfg.define("CMAKE_SHARED_LINKER_FLAGS", "-fuse-ld=lld");
++            }
++        }
++
++        // When cross-compiling with Bazel, AR is set but RANLIB might not be.
++        // Use AR as RANLIB since modern ar tools include ranlib functionality.
++        // This prevents CMake from finding the host's ranlib when cross-compiling.
++        if let Ok(ranlib_wrapper) = env::var("RANLIB_WRAPPER") {
++            // Check if we're likely cross-compiling (AR contains zig or is not the default)
++            if ranlib_wrapper.contains("zig") || ranlib_wrapper.contains("linux") || !ranlib_wrapper.contains("/usr/bin/ranlib") {
++                emit_warning(&format!("Using RANLIB_WRAPPER as CMAKE_RANLIB for cross-compilation: {}", ranlib_wrapper));
++                cmake_cfg.define("CMAKE_RANLIB", &ranlib_wrapper);
++                // Also set the environment variable for CMake to pick up
++                env::set_var("RANLIB", &ranlib_wrapper);
++            }
++        }
++
+         // Allow specifying Go executable via environment variable (useful for Bazel builds)
+         if let Some(go_binary) = option_env("GO_BINARY") {
+             emit_warning(&format!("Setting GO_EXECUTABLE for CMake: {}", go_binary));

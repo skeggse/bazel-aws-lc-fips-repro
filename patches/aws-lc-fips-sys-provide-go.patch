@@ -1,0 +1,40 @@
+--- a/builder/cmake_builder.rs
++++ b/builder/cmake_builder.rs
+@@ -25,6 +25,14 @@ fn test_perl_command() -> bool {
+ 
+ fn test_go_command() -> bool {
++    // Check if GO_BINARY environment variable is set (e.g., for Bazel builds)
++    if let Some(go_binary) = option_env("GO_BINARY") {
++        let result = execute_command(go_binary.as_ref(), &["version".as_ref()]);
++        if result.status {
++            emit_warning(&format!("Using Go from GO_BINARY: {}", go_binary));
++            return true;
++        }
++    }
+     let result = execute_command("go".as_ref(), &["version".as_ref()]);
+     if !result.status && result.executed {
+         eprintln!("Go stderr:\n--------\n{}\n--------", result.stderr);
+@@ -100,6 +108,23 @@ impl CmakeBuilder {
+ 
+         let mut cmake_cfg = self.get_cmake_config();
+ 
++        // Allow specifying Go executable via environment variable (useful for Bazel builds)
++        if let Some(go_binary) = option_env("GO_BINARY") {
++            emit_warning(&format!("Setting GO_EXECUTABLE for CMake: {}", go_binary));
++            cmake_cfg.define("GO_EXECUTABLE", &go_binary);
++            
++            // For Bazel's Go SDK, GOROOT should be the parent of the bin directory
++            // The structure is: external/go_sdk/bin/go
++            // GOROOT should be: external/go_sdk
++            let go_path = PathBuf::from(go_binary);
++            if let Some(bin_dir) = go_path.parent() {
++                if let Some(goroot) = bin_dir.parent() {
++                    let goroot_str = goroot.to_string_lossy();
++                    emit_warning(&format!("Setting GOROOT: {}", goroot_str));
++                    env::set_var("GOROOT", goroot.as_os_str());
++                }
++            }
++        }
+         if OutputLibType::default() == OutputLibType::Dynamic {
+             cmake_cfg.define("BUILD_SHARED_LIBS", "1");
+         } else {

@@ -1,0 +1,13 @@
+# Build configuration
+build --incompatible_enable_cc_toolchain_resolution
+build --noenable_bzlmod
+build --experimental_downloader_config=downloader.cfg
+
+# Use Zig for cross-compilation
+build:linux-x86_64 --platforms=@zig_sdk//platform:linux_amd64
+build:linux-arm64 --platforms=@zig_sdk//platform:linux_arm64
+
+# Verbose output for debugging
+build:verbose --sandbox_debug
+build:verbose --verbose_failures
+build:verbose --toolchain_resolution_debug=@rules_rust//rust:toolchain_type

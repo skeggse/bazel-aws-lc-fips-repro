@@ -1,0 +1,10 @@
+[workspace]
+members = ["aws_lc_repro"]
+resolver = "2"
+
+[workspace.dependencies]
+aws-lc-fips-sys = "0.13.7"
+
+[workspace.patch.crates-io]
+# Use the same cc-rs fork as the monorepo for zig compatibility
+cc = { git = "https://github.com/Asana/cc-rs.git", branch = "main" }
