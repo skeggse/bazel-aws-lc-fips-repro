@@ -32,10 +32,10 @@ These commands attempt to build for Linux targets:
 
 ```bash
 # Linux AMD64
-bazel build --platforms=@zig_sdk//platform:linux_amd64 //aws_lc_repro
+$ bazel build --platforms=@zig_sdk//platform:linux_amd64 //aws_lc_repro
 
 # Linux ARM64
-bazel build --platforms=@zig_sdk//platform:linux_arm64 //aws_lc_repro
+$ bazel build --platforms=@zig_sdk//platform:linux_arm64 //aws_lc_repro
 ```
 
 **Error output:**
@@ -65,7 +65,26 @@ error: linking with `external/local_config_cc/cc_wrapper.sh` failed: exit status
           clang: error: linker command failed with exit code 1
 ```
 
-The build successfully compiles the AWS-LC libraries but fails to link them. The libraries DO exist:
+### 3. Runtime Failure Even When Build Succeeds
+
+Sometimes the build appears to succeed but the binary fails at runtime:
+
+```bash
+$ bazel run //aws_lc_repro
+INFO: Found 1 target...
+Target //aws_lc_repro:aws_lc_repro up-to-date:
+  bazel-bin/aws_lc_repro/aws_lc_repro
+INFO: Build completed successfully, 1 total action
+INFO: Running command line: bazel-bin/aws_lc_repro/aws_lc_repro
+dyld[82196]: Library not loaded: @rpath/libaws_lc_fips_0_13_7_crypto.dylib
+  Referenced from: <37B227BA-C882-306C-9942-FE93B22625C0> /private/var/tmp/_bazel_eliskeggs/e580cc93b7a734e8234364ad5cffaba6/execroot/aws_lc_repro/bazel-out/darwin_arm64-fastbuild/bin/aws_lc_repro/aws_lc_repro
+  Reason: no LC_RPATH's found
+Abort trap: 6
+```
+
+This shows the dynamic libraries aren't properly linked with RPATH, causing runtime failures even when linking succeeds.
+
+The build successfully compiles the AWS-LC libraries but fails to link/run them. The libraries DO exist:
 
 ```bash
 $ fd libaws_lc_fips_0_13_7_crypto.so bazel-out
@@ -120,7 +139,7 @@ bazel build \
 | Forked cc-rs                   | Handle Zig target format                      | ✅ Compilation works                                            |
 | Environment variable injection | Pass hermetic tool paths                      | ✅ Tools found correctly                                        |
 | Dynamic linking                | Work around FIPS requirements                 | ❌ May be wrong approach, static might be better for rules_rust |
-| `--spawn_strategy=local`       | Disable sandboxing to avoid path issues       | ❌ Still fails, libraries not found at link time               |
+| `--spawn_strategy=local`       | Disable sandboxing to avoid path issues       | ❌ Still fails, libraries not found at link time                |
 
 ## Known Technical Issues
 
@@ -130,6 +149,33 @@ bazel build \
    - Expects `linux-gnu` instead of `unknown-linux-gnu` target format
 3. **FIPS Delocation**: Go-based tools have specific requirements challenging for hermetic builds
 4. **Sandbox Isolation**: Bazel's sandboxing prevents the linker from finding libraries in the build output directory
+
+## Static Linking Failures
+
+When attempting static linking (by setting `"AWS_LC_FIPS_SYS_STATIC": "1"`), the build fails during FIPS module delocation with assembly errors:
+
+### AMD64 Target
+
+```
+error while processing "\tmovl\tOPENSSL_ia32cap_P@GOTPCREL(%rip), %eax\n" on line 137439:
+"Cannot rewrite GOTPCREL reference for instruction \"movl\""
+```
+
+### ARM64 Target
+
+```
+error: fixup value out of range
+ adr x8, .Laes_nohw_rcon_local_target
+ ^
+```
+
+These failures occur in the `bcm-delocated.S` assembly file generation, with hundreds of "fixup value out of range" errors on ARM64. The FIPS module delocation process appears incompatible with the cross-compilation toolchain configuration, forcing the use of dynamic linking despite its path resolution issues.
+
+To reproduce: Set `"AWS_LC_FIPS_SYS_STATIC": "1"` in `WORKSPACE` and run:
+
+```bash
+CARGO_BAZEL_REPIN=true bazel build @rust_crate_index__aws-lc-fips-sys-0.13.7//:_bs
+```
 
 ## Help Needed
 
