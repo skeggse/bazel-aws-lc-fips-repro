@@ -3,6 +3,5 @@ exports_files(
     glob(["*_wrapper.sh"]) + [
         "Cargo.toml",
         "Cargo.lock",
-        "aws-lc-fips-sys.bazel",
     ],
 )
