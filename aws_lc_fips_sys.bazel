@@ -1,20 +1,22 @@
-# HACK (reid@aspect.build 2025-08-27):
-#   Additive buildfile content required to make libaws-lc-fips sorta work.
-#
-#   Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips
-#   produces dynlib extensions rules_rust can't see statically when it generates
-#   the buidlfile for the crate. Specifically the Cargo buildscript dynamically
-#   produces dynlibs into a tree artifact which is not a dep of the
-#   rust_library, and also creates a dynamic dependency statement which
-#   rules_rust can't honor because Bazel is a static [dependency] build system.
-#
-#   As a workaround, we create these rules which serve only to copy the dynlib
-#   artifacts out of the build.rs's results TreeArtifact and to declared output
-#   locations which we can then treat as normal cc_import libraries and add to
-#   the crate as compile deps.
-#
-#   Bazel requires that the genrule outs= attribute not be configurable, so
-#   rather than having two copy rules we have to have four. Oh well.
+"""
+HACK (reid@aspect.build 2025-08-27):
+  Additive buildfile content required to make libaws-lc-fips sorta work.
+
+  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips
+  produces dynlib extensions rules_rust can't see statically when it generates
+  the buildfile for the crate. Specifically the Cargo buildscript dynamically
+  produces dynlibs into a tree artifact which is not a dep of the
+  rust_library, and also creates a dynamic dependency statement which
+  rules_rust can't honor because Bazel is a static [dependency] build system.
+
+  As a workaround, we create these rules which serve only to copy the dynlib
+  artifacts out of the build.rs's results TreeArtifact and to declared output
+  locations which we can then treat as normal cc_import libraries and add to
+  the crate as compile deps.
+
+  Bazel requires that the genrule outs= attribute not be configurable, so
+  rather than having two copy rules we have to have four. Oh well.
+"""
 
 genrule(
     name = "_crypto_darwin",
