@@ -1,0 +1,69 @@
+# HACK (reid@aspect.build 2025-08-27):
+#   Additive buildfile content required to make libaws-lc-fips sorta work.
+#
+#   Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips
+#   produces dynlib extensions rules_rust can't see statically when it generates
+#   the buidlfile for the crate. Specifically the Cargo buildscript dynamically
+#   produces dynlibs into a tree artifact which is not a dep of the
+#   rust_library, and also creates a dynamic dependency statement which
+#   rules_rust can't honor because Bazel is a static [dependency] build system.
+#
+#   As a workaround, we create these rules which serve only to copy the dynlib
+#   artifacts out of the build.rs's results TreeArtifact and to declared output
+#   locations which we can then treat as normal cc_import libraries and add to
+#   the crate as compile deps.
+#
+#   Bazel requires that the genrule outs= attribute not be configurable, so
+#   rather than having two copy rules we have to have four. Oh well.
+
+genrule(
+    name = "_crypto_darwin",
+    srcs = [":build_script_main"],
+    outs = [
+        "libaws_lc_fips_0_13_7_crypto.dylib",
+    ],
+    cmd = "cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
+)
+
+genrule(
+    name = "_crypto_linux",
+    srcs = [":build_script_main"],
+    outs = [
+        "libaws_lc_fips_0_13_7_crypto.so",
+    ],
+    cmd = "cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
+)
+
+cc_import(
+    name = "crypto",
+    shared_library = select({
+        "@platforms//os:linux": ":_crypto_linux",
+        "@platforms//os:macos": ":_crypto_darwin",
+    }),
+)
+
+genrule(
+    name = "_rust_wrapper_darwin",
+    srcs = [":build_script_main"],
+    outs = [
+        "libaws_lc_fips_0_13_7_rust_wrapper.dylib",
+    ],
+    cmd = "cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
+)
+
+genrule(
+    name = "_rust_wrapper_linux",
+    srcs = [":build_script_main"],
+    outs = [
+        "libaws_lc_fips_0_13_7_rust_wrapper.so",
+    ],
+    cmd = "cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
+)
+
+cc_import(
+    name = "rust_wrapper",
+    shared_library = select({
+        "@platforms//os:linux": ":_rust_wrapper_linux",
+        "@platforms//os:macos": ":_rust_wrapper_darwin",
+    }),
+)

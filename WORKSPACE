@@ -164,6 +164,9 @@ crates_repository(
                 # Provide Go binary as a tool
                 build_script_tools = ["@go_sdk//:bin/go"],
                 patch_args = ["-p1"],
+                # Include extra targets as dependencies.
+                deps = [":crypto", ":rust_wrapper"],
+                additive_build_file = "@aws_lc_repro//:aws_lc_fips_sys.bazel",
                 # Apply patches for cross-compilation support
                 patches = [
                     "@aws_lc_repro//patches:aws-lc-fips-sys-provide-go.patch",
