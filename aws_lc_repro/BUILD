@@ -18,6 +18,7 @@ tar(
     name = "aws_lc_repro.tar",
     srcs = [":aws_lc_repro"],
     mutate = mutate(strip_prefix = "aws_lc_repro"),
+    compress = "gzip",
 )
 
 oci_image(

@@ -2,11 +2,16 @@
 
 ## TL;DR
 
-**Problem:** Bazel builds fail when compiling Rust code that uses `aws-lc-fips-sys` due to the linker being unable to locate shared libraries (`.so`/`.dylib`) that ARE successfully built but are in the wrong location.
+**Problem:** While the original build and linking issues have been resolved, new runtime and container-related issues prevent successful execution of FIPS-compliant binaries.
 
-**Why it matters:** We're migrating from `ring` to `aws-lc-fips-sys` for FIPS compliance.
+**Why it matters:** `ring` is not FIPS-compliant, but `aws-lc-fips-sys` is.
 
-**Current blocker:** The libraries exist at `bazel-out/darwin_arm64-fastbuild/bin/external/rust_crate_index__aws-lc-fips-sys-0.13.7/_bs.out_dir/build/artifacts/` but the linker searches different paths.
+**Current blockers:**
+
+- FIPS module integrity check fails due to symbol address space issues
+- Container structure tests cannot locate built images
+- Shared libraries have undefined symbols in cross-compiled containers
+- Library paths not properly resolved in container runfiles
 
 ## Prerequisites
 
@@ -16,80 +21,126 @@
 
 ## Quick Context
 
-This repository demonstrates build failures when using:
+This repository demonstrates issues when using:
 
 - **aws-lc-fips-sys**: Rust bindings to AWS-LC (Amazon's fork of BoringSSL) with FIPS compliance
 - **Bazel**: Build system with hermetic toolchains for reproducible builds
 - **Zig toolchain**: Used for cross-compilation but has incompatibilities with traditional compiler behavior
+- **container-structure-test**: Testing framework for validating container images, facing runtime integration issues
 
-The core issue is that while the AWS-LC libraries compile successfully, the final linking step fails because Bazel's sandboxing and path handling don't align with where the build script places the libraries.
+Recent commits have resolved the initial build and linking issues, but new runtime and container-related problems have emerged.
 
-## Reproduction & Errors
+## Current Issues & Reproduction
 
-### 1. Cross-compilation to Linux (from macOS)
+### 1. FIPS Module Symbol Address Space Issue
 
-These commands attempt to build for Linux targets:
-
-```bash
-# Linux AMD64
-$ bazel build --platforms=@zig_sdk//platform:linux_amd64 //aws_lc_repro
-
-# Linux ARM64
-$ bazel build --platforms=@zig_sdk//platform:linux_arm64 //aws_lc_repro
-```
-
-**Error output:**
-
-```
-error: linking with `external/zig_sdk/tools/x86_64-linux-gnu.2.31/c++` failed: exit status: 1
-  = note: error: unable to find dynamic system library 'aws_lc_fips_0_13_7_crypto' using strategy 'no_fallback'. searched paths:
-            bazel-out/darwin_arm64-fastbuild/bin/external/rust_macos_aarch64__x86_64-unknown-linux-gnu__stable_tools/rust_toolchain/lib/rustlib/x86_64-unknown-linux-gnu/lib/libaws_lc_fips_0_13_7_crypto.so
-            /private/var/tmp/_bazel_eliskeggs/e580cc93b7a734e8234364ad5cffaba6/sandbox/darwin-sandbox/166/execroot/aws_lc_repro/bazel-out/darwin_arm64-fastbuild/bin/external/rust_crate_index__aws-lc-fips-sys-0.13.7/_bs.out_dir/build/artifacts/libaws_lc_fips_0_13_7_crypto.so
-            bazel-out/darwin_arm64-fastbuild/bin/external/rust_macos_aarch64__x86_64-unknown-linux-gnu__stable_tools/rust_toolchain/lib/rustlib/x86_64-unknown-linux-gnu/lib/libaws_lc_fips_0_13_7_crypto.so
-```
-
-Note the second path it searches IS correct but due to sandboxing, the actual file is at a different sandbox path.
-
-### 2. Native macOS Build Also Fails
-
-```bash
-bazel build //aws_lc_repro
-```
-
-**Error output:**
-
-```
-error: linking with `external/local_config_cc/cc_wrapper.sh` failed: exit status: 1
-  = note: ld: warning: search path '.../aws-lc-fips-sys-0.13.7/_bs.out_dir/build/artifacts' not found
-          ld: library 'aws_lc_fips_0_13_7_crypto' not found
-          clang: error: linker command failed with exit code 1
-```
-
-### 3. Runtime Failure Even When Build Succeeds
-
-Sometimes the build appears to succeed but the binary fails at runtime:
+Running the binary with host C++ toolchain results in FIPS integrity check failure:
 
 ```bash
 $ bazel run //aws_lc_repro
-INFO: Found 1 target...
-Target //aws_lc_repro:aws_lc_repro up-to-date:
-  bazel-bin/aws_lc_repro/aws_lc_repro
-INFO: Build completed successfully, 1 total action
-INFO: Running command line: bazel-bin/aws_lc_repro/aws_lc_repro
-dyld[82196]: Library not loaded: @rpath/libaws_lc_fips_0_13_7_crypto.dylib
-  Referenced from: <37B227BA-C882-306C-9942-FE93B22625C0> /private/var/tmp/_bazel_eliskeggs/e580cc93b7a734e8234364ad5cffaba6/execroot/aws_lc_repro/bazel-out/darwin_arm64-fastbuild/bin/aws_lc_repro/aws_lc_repro
-  Reason: no LC_RPATH's found
+```
+
+**Error output:**
+
+```
+FIPS module doesn't span expected symbol (AES_encrypt). Expected 0x102ef7298 <= 0x102e11b00 < 0x102ef72a0
 Abort trap: 6
 ```
 
-This shows the dynamic libraries aren't properly linked with RPATH, causing runtime failures even when linking succeeds.
+**Analysis:** This appears to be related to relocation handling in the FIPS module, as described in AWS-LC's FIPS documentation (section "Integrity Test" > "Linux Shared build"). The FIPS module expects all cryptographic symbols to be within a specific address range for integrity verification.
 
-The build successfully compiles the AWS-LC libraries but fails to link/run them. The libraries DO exist:
+**Next Steps:**
+
+- Investigate relocation handling in the build process
+- Review linker flags and how symbols are being positioned
+- Consider if static linking would resolve this issue
+
+### 2. Container Structure Test Execution Failure
+
+Container structure tests fail with image lookup errors despite successful image creation:
 
 ```bash
-$ fd libaws_lc_fips_0_13_7_crypto.so bazel-out
-bazel-out/darwin_arm64-fastbuild/bin/external/rust_crate_index__aws-lc-fips-sys-0.13.7/_bs.out_dir/build/artifacts/libaws_lc_fips_0_13_7_crypto.so
+$ bazel run //aws_lc_repro:test
 ```
+
+**Error output:**
+
+```
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //aws_lc_repro:test
+-----------------------------------------------------------------------------
+Loaded  cst.oci.local/sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3:sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3
+
+==================================
+====== Test file: test.json ======
+==================================
+=== RUN: Command Test: execute fips binary
+--- FAIL
+duration: 2.474125ms
+Error: Error creating container: API error (404): no such image: cst.oci.local/sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3:sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3: image not known
+
+FAIL
+```
+
+**Analysis:** The image is successfully loaded into podman but isn't accessible to the container structure test runtime.
+
+**Next Steps:**
+
+- Debug container runtime integration between Bazel and podman
+- Verify image naming and tagging conventions
+- Check if there's a mismatch in registry configuration
+
+### 3. Undefined Symbols in Cross-Compiled Container Libraries
+
+The built container contains shared libraries with undefined symbols:
+
+```bash
+# readelf -Ws /w/aws_lc_repro.runfiles/aws_lc_repro/_solib_k8/[...]/libaws_lc_fips_0_13_7_crypto.so
+
+Symbol table '.dynsym' contains 3508 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+[...]
+    92: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND aws_lc_fips_0_13_7_aes_hw_encrypt
+[...]
+```
+
+**Analysis:** Critical AWS-LC FIPS symbols are not being properly linked into the shared library.
+
+**Next Steps:**
+
+- Review the cross-compilation linking process
+- Check if all necessary object files are being included
+- Verify symbol visibility settings in the build
+
+### 4. Container Runfiles Library Path Resolution
+
+The container has incorrect library path structure:
+
+```
+/aws_lc_repro.runfiles
+├── _repo_mapping
+├── aws_lc_repro
+│   ├── _solib_k8
+│   │   ├── _U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Ccrypto___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7
+│   │   │   └── libaws_lc_fips_0_13_7_crypto.so
+│   │   └── _U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Crust_Uwrapper___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7
+│   │       └── libaws_lc_fips_0_13_7_rust_wrapper.so
+│   └── aws_lc_repro
+│       └── aws_lc_repro
+└── aws_lc_repro
+```
+
+**Issues:**
+
+- The `_U_A_A` prefixed paths indicate mangled/escaped paths that aren't being properly resolved
+- Executables don't receive proper library paths
+- Manual LD_LIBRARY_PATH setting is required
+
+**Next Steps:**
+
+- Investigate Bazel's runfiles tree generation for containers
+- Review how library paths are being escaped/mangled
+- Check if rules_oci needs specific configuration for shared libraries
 
 ## Debugging Recommendations
 
@@ -120,7 +171,7 @@ bazel build \
   - `aws-lc-fips-sys-use-ar-as-ranlib.patch` - Handles cross-compilation tools
 
 - **Wrapper Scripts** - Work around Zig compiler differences:
-  - `cc_wrapper.sh` - Fixes Zig producing object files instead of assembly with `-S`
+
   - `ld_wrapper.sh` - Converts linker flags to Zig-compatible format
   - `ranlib_wrapper.sh` - Uses `ar` when ranlib isn't available
 
@@ -130,71 +181,86 @@ bazel build \
 - `Cargo.toml` / `Cargo.lock` - Rust dependencies
 - Uses forked `cc-rs` to handle Zig's `--target` format differences
 
-## What's Been Tried
+## Overall Action Items
 
-| Workaround                     | Purpose                                       | Result                                                          |
-| ------------------------------ | --------------------------------------------- | --------------------------------------------------------------- |
-| Custom wrapper scripts         | Adapt Zig compiler behavior to match LLVM/GCC | ✅ Build succeeds, ❌ Linking fails                             |
-| Patches to aws-lc-fips-sys     | Better tool discovery and hermetic builds     | ✅ CMake runs, ❌ Library paths wrong                           |
-| Forked cc-rs                   | Handle Zig target format                      | ✅ Compilation works                                            |
-| Environment variable injection | Pass hermetic tool paths                      | ✅ Tools found correctly                                        |
-| Dynamic linking                | Work around FIPS requirements                 | ❌ May be wrong approach, static might be better for rules_rust |
-| `--spawn_strategy=local`       | Disable sandboxing to avoid path issues       | ❌ Still fails, libraries not found at link time                |
+1. **FIPS Module Integrity (Priority 1)**
 
-## Known Technical Issues
+   - Debug symbol relocation and address space layout
+   - Investigate if static linking would resolve the integrity check
+   - Review AWS-LC FIPS documentation for Bazel-specific guidance
 
-1. **Library Path Mismatch**: Libraries are built but Bazel's sandbox path doesn't match linker search paths
-2. **Zig Compiler Quirks**:
-   - Produces object files instead of assembly with `-S` flag
-   - Expects `linux-gnu` instead of `unknown-linux-gnu` target format
-3. **FIPS Delocation**: Go-based tools have specific requirements challenging for hermetic builds
-4. **Sandbox Isolation**: Bazel's sandboxing prevents the linker from finding libraries in the build output directory
+2. **Container Testing Infrastructure**
 
-## Static Linking Failures
+   - Fix container runtime integration with podman/docker
+   - Resolve image naming and registry configuration issues
+   - Ensure container structure tests can locate built images
 
-When attempting static linking (by setting `"AWS_LC_FIPS_SYS_STATIC": "1"`), the build fails during FIPS module delocation with assembly errors:
+3. **Cross-Compilation Linking**
 
-### AMD64 Target
+   - Resolve undefined symbols in shared libraries
+   - Ensure all AWS-LC object files are properly linked
+   - Review symbol visibility and export settings
+
+4. **Runfiles Path Resolution**
+   - Fix library path mangling in container runfiles
+   - Configure proper LD_LIBRARY_PATH or RPATH settings
+   - Investigate rules_oci shared library handling
+
+## Resolved Issues (Historical Context)
+
+The following issues have been resolved through recent commits but are preserved for reference:
+
+### Previously: Build and Linking Failures
+
+**Original Problem:** Bazel builds failed when compiling Rust code using `aws-lc-fips-sys` due to the linker being unable to locate shared libraries that were successfully built but in the wrong location.
+
+**Resolution:** Fixed through wrapper scripts and build configuration updates in recent commits.
+
+#### Cross-compilation Issues (Resolved)
+
+Previously failed with:
 
 ```
-error while processing "\tmovl\tOPENSSL_ia32cap_P@GOTPCREL(%rip), %eax\n" on line 137439:
-"Cannot rewrite GOTPCREL reference for instruction \"movl\""
+error: unable to find dynamic system library 'aws_lc_fips_0_13_7_crypto' using strategy 'no_fallback'
 ```
 
-### ARM64 Target
+#### Native macOS Build (Resolved)
+
+Previously failed with:
 
 ```
-error: fixup value out of range
- adr x8, .Laes_nohw_rcon_local_target
- ^
+ld: library 'aws_lc_fips_0_13_7_crypto' not found
 ```
 
-These failures occur in the `bcm-delocated.S` assembly file generation, with hundreds of "fixup value out of range" errors on ARM64. The FIPS module delocation process appears incompatible with the cross-compilation toolchain configuration, forcing the use of dynamic linking despite its path resolution issues.
+#### Runtime Library Loading (Partially Resolved)
 
-To reproduce: Set `"AWS_LC_FIPS_SYS_STATIC": "1"` in `WORKSPACE` and run:
+Previously failed with:
 
-```bash
-CARGO_BAZEL_REPIN=true bazel build @rust_crate_index__aws-lc-fips-sys-0.13.7//:_bs
+```
+dyld[82196]: Library not loaded: @rpath/libaws_lc_fips_0_13_7_crypto.dylib
 ```
 
-## Help Needed
+### Known Technical Challenges
 
-**Primary Issue:** The linker cannot locate the shared libraries even though they exist. The build script successfully creates:
+1. **Zig Compiler Quirks** (Addressed via wrappers and forks):
 
-- `libaws_lc_fips_0_13_7_crypto.so`
-- `libaws_lc_fips_0_13_7_rust_wrapper.so`
+   - Expects different `--target` format than LLVM (e.g., `x86_64-linux-gnu` instead of `x86_64-unknown-linux-gnu`)
+   - Requires `-Wl,` prefix for certain linker flags when passed to clang/zig (handled by `ld_wrapper.sh`)
+   - Lacks traditional `ranlib` tool, requiring `ar s` as substitute (handled by `ranlib_wrapper.sh`)
 
-But they're at: `bazel-out/darwin_arm64-fastbuild/bin/external/rust_crate_index__aws-lc-fips-sys-0.13.7/_bs.out_dir/build/artifacts/`
+2. **Static Linking Limitations**: FIPS module delocation fails with assembly errors when attempting static linking, requiring dynamic linking approach.
 
-While the linker searches sandbox paths that don't align with this location.
+### Previous Workarounds Applied
 
-**Questions:**
+| Workaround                     | Purpose                                       | Status         |
+| ------------------------------ | --------------------------------------------- | -------------- |
+| Custom wrapper scripts         | Adapt Zig compiler behavior to match LLVM/GCC | ✅ Implemented |
+| Patches to aws-lc-fips-sys     | Better tool discovery and hermetic builds     | ✅ Applied     |
+| Forked cc-rs                   | Handle Zig target format                      | ✅ In use      |
+| Environment variable injection | Pass hermetic tool paths                      | ✅ Configured  |
 
-1. How can we make Bazel/rules_rust recognize the build script's output directory?
-2. Should we pursue static linking instead of dynamic linking for better rules_rust compatibility?
-3. Is there a way to copy/symlink the libraries to where the linker expects them?
-
-## Related Issues
+## Related Issues & Resources
 
 - [Zig Issue #4911](https://github.com/ziglang/zig/issues/4911) - Target format compatibility
 - [rules_rust Issue #2529](https://github.com/bazelbuild/rules_rust/issues/2529) - Zig toolchain integration
+- [AWS-LC FIPS Documentation](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md) - FIPS module requirements and integrity testing
