@@ -1,5 +1,5 @@
 {
-  "checksum": "8bfb3371be87b8fa516ecb4ccce6652e7557396aa84420a13f1893570e10a44a",
+  "checksum": "9610d09ee28d989da8d22f66e78887c88c153042be9940631579ce415a2a6b2d",
   "crates": {
     "aho-corasick 1.1.3": {
       "name": "aho-corasick",
@@ -132,7 +132,6 @@
         ],
         "data": {
           "common": [
-            "@aws_lc_repro//:cc_wrapper.sh",
             "@aws_lc_repro//:ld_wrapper.sh",
             "@aws_lc_repro//:ranlib_wrapper.sh",
             "@go_sdk//:files",
@@ -178,7 +177,6 @@
         "build_script_env": {
           "common": {
             "AWS_LC_FIPS_SYS_STATIC": "0",
-            "CC_WRAPPER": "$(execpath @aws_lc_repro//:cc_wrapper.sh)",
             "CMAKE": "$${pwd}/$(CMAKE)",
             "GO_BINARY": "$(execpath @go_sdk//:bin/go)",
             "LD_WRAPPER": "$(execpath @aws_lc_repro//:ld_wrapper.sh)",
@@ -204,7 +202,7 @@
         "OpenSSL"
       ],
       "license_file": "LICENSE",
-      "additive_build_file_content": "\"\"\"\nHACK (reid@aspect.build 2025-08-27):\n  Additive buildfile content required to make libaws-lc-fips sorta work.\n\n  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips\n  produces dynlib extensions rules_rust can't see statically when it generates\n  the buildfile for the crate. Specifically the Cargo buildscript dynamically\n  produces dynlibs into a tree artifact which is not a dep of the\n  rust_library, and also creates a dynamic dependency statement which\n  rules_rust can't honor because Bazel is a static [dependency] build system.\n\n  As a workaround, we create these rules which serve only to copy the dynlib\n  artifacts out of the build.rs's results TreeArtifact and to declared output\n  locations which we can then treat as normal cc_import libraries and add to\n  the crate as compile deps.\n\n  Bazel requires that the genrule outs= attribute not be configurable, so\n  rather than having two copy rules we have to have four. Oh well.\n\"\"\"\n\ngenrule(\n    name = \"_crypto_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_crypto.dylib\",\n    ],\n    cmd = \"cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_crypto_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_crypto.so\",\n    ],\n    cmd = \"cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"crypto\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_crypto_linux\",\n        \"@platforms//os:macos\": \":_crypto_darwin\",\n    }),\n)\n\ngenrule(\n    name = \"_rust_wrapper_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_rust_wrapper.dylib\",\n    ],\n    cmd = \"cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_rust_wrapper_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_rust_wrapper.so\",\n    ],\n    cmd = \"cp $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"rust_wrapper\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_rust_wrapper_linux\",\n        \"@platforms//os:macos\": \":_rust_wrapper_darwin\",\n    }),\n)\n"
+      "additive_build_file_content": "\"\"\"\nHACK (reid@aspect.build 2025-08-27):\n  Additive buildfile content required to make libaws-lc-fips sorta work.\n\n  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips\n  produces dynlib extensions rules_rust can't see statically when it generates\n  the buildfile for the crate. Specifically the Cargo buildscript dynamically\n  produces dynlibs into a tree artifact which is not a dep of the\n  rust_library, and also creates a dynamic dependency statement which\n  rules_rust can't honor because Bazel is a static [dependency] build system.\n\n  As a workaround, we create these rules which serve only to copy the dynlib\n  artifacts out of the build.rs's results TreeArtifact and to declared output\n  locations which we can then treat as normal cc_import libraries and add to\n  the crate as compile deps.\n\n  Bazel requires that the genrule outs= attribute not be configurable, so\n  rather than having two copy rules we have to have four. Oh well.\n\"\"\"\n\ngenrule(\n    name = \"_crypto_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_crypto.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_crypto_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_crypto.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"crypto\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_crypto_linux\",\n        \"@platforms//os:macos\": \":_crypto_darwin\",\n    }),\n)\n\ngenrule(\n    name = \"_rust_wrapper_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_rust_wrapper.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_rust_wrapper_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_rust_wrapper.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"rust_wrapper\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_rust_wrapper_linux\",\n        \"@platforms//os:macos\": \":_rust_wrapper_darwin\",\n    }),\n)\n"
     },
     "aws_lc_repro 0.1.0": {
       "name": "aws_lc_repro",

@@ -100,7 +100,6 @@ http_archive(
 http_archive(
     name = "tar.bzl",
     sha256 = "29a3c99c28deca5f8245e2fc32ffdb99c1ea69316462718f3bebfff441d36e4a",
-    # Upgrade blocked by https://github.com/bazel-contrib/tar.bzl/issues/61.
     strip_prefix = "tar.bzl-0.5.6",
     url = "https://github.com/bazel-contrib/tar.bzl/releases/download/v0.5.6/tar.bzl-v0.5.6.tar.gz",
 )
@@ -153,12 +152,12 @@ crates_repository(
         "aws-lc-fips-sys": [
             # Adapted from https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
             crate.annotation(
+                additive_build_file = "@aws_lc_repro//:aws_lc_fips_sys.bazel",
                 # Setting build_script_data makes the files available when the rule runs.
                 build_script_data = [
                     "@rules_foreign_cc//toolchains:current_cmake_toolchain",
                     "@go_sdk//:files",  # Provide the entire Go SDK
                     "@aws_lc_repro//:ranlib_wrapper.sh",
-                    "@aws_lc_repro//:cc_wrapper.sh",
                     "@aws_lc_repro//:ld_wrapper.sh",
                 ],
                 build_script_env = {
@@ -173,9 +172,6 @@ crates_repository(
                     # This is used to ensure that the `ar` tool is used as a ranlib
                     # when cross-compiling, as the `ranlib` tool may not be available.
                     "RANLIB_WRAPPER": "$(execpath @aws_lc_repro//:ranlib_wrapper.sh)",
-                    # Provide the path to the C compiler wrapper script.
-                    # This works around zig compiler producing object files with -S flag
-                    "CC_WRAPPER": "$(execpath @aws_lc_repro//:cc_wrapper.sh)",
                     # Provide the path to the linker wrapper script.
                     # This converts bare linker flags to -Wl, prefixed flags
                     "LD_WRAPPER": "$(execpath @aws_lc_repro//:ld_wrapper.sh)",
@@ -192,13 +188,15 @@ crates_repository(
                 # Provide Go binary as a tool
                 build_script_tools = ["@go_sdk//:bin/go"],
                 patch_args = ["-p1"],
-                # Include extra targets as dependencies.
-                deps = [":crypto", ":rust_wrapper"],
-                additive_build_file = "@aws_lc_repro//:aws_lc_fips_sys.bazel",
                 # Apply patches for cross-compilation support
                 patches = [
                     "@aws_lc_repro//patches:aws-lc-fips-sys-provide-go.patch",
                     "@aws_lc_repro//patches:aws-lc-fips-sys-use-ar-as-ranlib.patch",
+                ],
+                # Include extra targets as dependencies.
+                deps = [
+                    ":crypto",
+                    ":rust_wrapper",
                 ],
             ),
         ],
@@ -217,3 +215,41 @@ crates_repository(
 load("@rust_crate_index//:defs.bzl", "crate_repositories")
 
 crate_repositories()
+
+http_archive(
+    name = "rules_oci",
+    sha256 = "5994ec0e8df92c319ef5da5e1f9b514628ceb8fc5824b4234f2fe635abb8cc2e",
+    strip_prefix = "rules_oci-2.2.6",
+    url = "https://github.com/bazel-contrib/rules_oci/releases/download/v2.2.6/rules_oci-v2.2.6.tar.gz",
+)
+
+load("@rules_oci//oci:dependencies.bzl", "rules_oci_dependencies")
+
+rules_oci_dependencies()
+
+load("@rules_oci//oci:repositories.bzl", "oci_register_toolchains")
+
+oci_register_toolchains(name = "oci")
+
+load("@rules_oci//oci:pull.bzl", "oci_pull")
+
+oci_pull(
+    name = "distroless_base",
+    digest = "sha256:ccaef5ee2f1850270d453fdf700a5392534f8d1a8ca2acda391fbb6a06b81c86",
+    image = "gcr.io/distroless/base",
+    platforms = [
+        "linux/amd64",
+        "linux/arm64",
+    ],
+)
+
+http_archive(
+    name = "container_structure_test",
+    sha256 = "c91a76f7b4949775941f8308ee7676285555ae4756ec1ec990c609c975a55f93",
+    strip_prefix = "container-structure-test-1.19.3",
+    url = "https://github.com/GoogleContainerTools/container-structure-test/archive/refs/tags/v1.19.3.tar.gz",
+)
+
+load("@container_structure_test//:repositories.bzl", "container_structure_test_register_toolchain")
+
+container_structure_test_register_toolchain(name = "cst")
