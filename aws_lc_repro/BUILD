@@ -2,8 +2,7 @@ load("@container_structure_test//:defs.bzl", "container_structure_test")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_image_index")
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rust_crate_index//:defs.bzl", "aliases", "all_crate_deps")
-load("@tar.bzl", "tar")
-load("@tar.bzl//tar:mtree.bzl", "mtree_spec", "mtree_mutate")
+load("@tar.bzl", "mutate", "tar")
 load("//:multi_arch.bzl", "multi_arch")
 
 rust_binary(
@@ -15,28 +14,17 @@ rust_binary(
     deps = all_crate_deps(),
 )
 
-mtree_spec(
-    name = "aws_lc_repro.mtree",
-    srcs = [":aws_lc_repro"],
-    include_runfiles = False,
-)
-
-mtree_mutate(
-    name = "aws_lc_repro.mtree.mutate",
-    mtree = ":aws_lc_repro.mtree",
-    strip_prefix = "aws_lc_repro",
-)
-
 tar(
     name = "aws_lc_repro.tar",
     srcs = [":aws_lc_repro"],
-    mtree = ":aws_lc_repro.mtree.mutate",
+    mutate = mutate(strip_prefix = "aws_lc_repro"),
 )
 
 oci_image(
     name = "image.input",
     base = "@distroless_base",
     tars = [":aws_lc_repro.tar"],
+    cmd = ["/aws_lc_repro"],
 )
 
 multi_arch(
