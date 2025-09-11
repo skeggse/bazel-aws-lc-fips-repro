@@ -68,14 +68,42 @@ zig_toolchains()
 
 http_archive(
     name = "aspect_bazel_lib",
-    integrity = "sha256-NSKJX6E7l+iyfjtkIEVoKqQjOuGmsniq1qO0g1AdyfI=",
-    strip_prefix = "bazel-lib-2.20.0",
-    url = "https://github.com/bazel-contrib/bazel-lib/releases/download/v2.20.0/bazel-lib-v2.20.0.tar.gz",
+    sha256 = "f525668442e4b19ae10d77e0b5ad15de5807025f321954dfb7065c0fe2429ec1",
+    strip_prefix = "bazel-lib-2.21.1",
+    url = "https://github.com/bazel-contrib/bazel-lib/releases/download/v2.21.1/bazel-lib-v2.21.1.tar.gz",
 )
 
-load("@aspect_bazel_lib//lib:repositories.bzl", "register_coreutils_toolchains")
+load("@aspect_bazel_lib//lib:repositories.bzl", "aspect_bazel_lib_dependencies", "aspect_bazel_lib_register_toolchains")
 
-register_coreutils_toolchains()
+aspect_bazel_lib_dependencies()
+
+aspect_bazel_lib_register_toolchains()
+
+# Back-port https://github.com/bazelbuild/bazel-central-registry/blob/main/modules/gawk/5.3.2.bcr.1/source.json
+# to WORKSPACE semantics. Workaround for https://github.com/bazel-contrib/tar.bzl/issues/61.
+http_archive(
+    name = "gawk",
+    remote_file_urls = {
+        f: ["https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/refs/heads/main/modules/gawk/5.3.2.bcr.1/overlay/" + f]
+        for f in ["BUILD.bazel", "posix/config_darwin.h", "posix/config_linux.h"]
+    },
+    remote_file_integrity = {
+        "BUILD.bazel": "sha256-dt89+9IJ3UzQvoKzyXOiBoF6ok/4u4G0cb0Ja+plFy0=",
+        "posix/config_darwin.h": "sha256-gPVRlvtdXPw4Ikwd5S89wPPw5AaiB2HTHa1KOtj40mU=",
+        "posix/config_linux.h": "sha256-iEaeXYBUCvprsIEEi5ipwqt0JV8d73+rLgoBYTegC6Q=",
+    },
+    integrity = "sha256-+MNIZQnecFGSE4sA7ywAu73Q6Eww1cB9I/xzqdxMycw=",
+    strip_prefix = "gawk-5.3.2",
+    urls = ["https://ftpmirror.gnu.org/gnu/gawk/gawk-5.3.2.tar.xz"],
+)
+
+http_archive(
+    name = "tar.bzl",
+    sha256 = "29a3c99c28deca5f8245e2fc32ffdb99c1ea69316462718f3bebfff441d36e4a",
+    # Upgrade blocked by https://github.com/bazel-contrib/tar.bzl/issues/61.
+    strip_prefix = "tar.bzl-0.5.6",
+    url = "https://github.com/bazel-contrib/tar.bzl/releases/download/v0.5.6/tar.bzl-v0.5.6.tar.gz",
+)
 
 # Register Zig toolchains for cross-compilation
 register_toolchains(
