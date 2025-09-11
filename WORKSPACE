@@ -16,8 +16,8 @@ py_repositories()
 # Rules Rust
 http_archive(
     name = "rules_rust",
-    integrity = "sha256-eCUhTMrXwkgstJCskdvB6IswIjBieWzjKKyok7dK40I=",
-    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/0.60.0/rules_rust-0.60.0.tar.gz"],
+    integrity = "sha256-2GH766nwQzOgrmnkSO6D1pF/JC3bt/41xo/CEqarpUY=",
+    urls = ["https://github.com/bazelbuild/rules_rust/releases/download/0.64.0/rules_rust-0.64.0.tar.gz"],
 )
 
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
