@@ -2,16 +2,14 @@
 
 ## TL;DR
 
-**Problem:** While the original build and linking issues have been resolved, new runtime and container-related issues prevent successful execution of FIPS-compliant binaries.
+**Problem:** AWS-LC FIPS module fails integrity checks when building with Bazel due to symbol address space issues in the host toolchain compilation.
 
 **Why it matters:** `ring` is not FIPS-compliant, but `aws-lc-fips-sys` is.
 
 **Current blockers:**
 
-- FIPS module integrity check fails due to symbol address space issues
-- Container structure tests cannot locate built images
-- Shared libraries have undefined symbols in cross-compiled containers
-- Library paths not properly resolved in container runfiles
+- FIPS module integrity check fails due to symbol address space issues when compiling with host toolchain
+- Host toolchain is used instead of cross-compiling toolchain when compiling for the current platform
 
 ## Prerequisites
 
@@ -28,7 +26,7 @@ This repository demonstrates issues when using:
 - **Zig toolchain**: Used for cross-compilation but has incompatibilities with traditional compiler behavior
 - **container-structure-test**: Testing framework for validating container images, facing runtime integration issues
 
-Recent commits have resolved the initial build and linking issues, but new runtime and container-related problems have emerged.
+Recent commits have resolved the cross-compilation build and linking issues. The remaining issue is that the FIPS module integrity check fails when using the host toolchain.
 
 ## Current Issues & Reproduction
 
@@ -55,92 +53,17 @@ Abort trap: 6
 - Review linker flags and how symbols are being positioned
 - Consider if static linking would resolve this issue
 
-### 2. Container Structure Test Execution Failure
+### 2. Host Toolchain vs Cross-Compilation Toolchain
 
-Container structure tests fail with image lookup errors despite successful image creation:
+When building for the current platform (e.g., macOS on macOS), Bazel uses the host toolchain instead of the cross-compiling toolchain. This causes inconsistent behavior between native and cross-compiled builds.
 
-```bash
-$ bazel run //aws_lc_repro:test
-```
-
-**Error output:**
-
-```
-exec ${PAGER:-/usr/bin/less} "$0" || exit 1
-Executing tests from //aws_lc_repro:test
------------------------------------------------------------------------------
-Loaded  cst.oci.local/sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3:sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3
-
-==================================
-====== Test file: test.json ======
-==================================
-=== RUN: Command Test: execute fips binary
---- FAIL
-duration: 2.474125ms
-Error: Error creating container: API error (404): no such image: cst.oci.local/sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3:sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3: image not known
-
-FAIL
-```
-
-**Analysis:** The image is successfully loaded into podman but isn't accessible to the container structure test runtime.
+**Analysis:** The host toolchain compilation path differs from the cross-compilation path, leading to different symbol layouts and potential FIPS integrity check failures.
 
 **Next Steps:**
 
-- Debug container runtime integration between Bazel and podman
-- Verify image naming and tagging conventions
-- Check if there's a mismatch in registry configuration
-
-### 3. Undefined Symbols in Cross-Compiled Container Libraries
-
-The built container contains shared libraries with undefined symbols:
-
-```bash
-# readelf -Ws /w/aws_lc_repro.runfiles/aws_lc_repro/_solib_k8/[...]/libaws_lc_fips_0_13_7_crypto.so
-
-Symbol table '.dynsym' contains 3508 entries:
-   Num:    Value          Size Type    Bind   Vis      Ndx Name
-[...]
-    92: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND aws_lc_fips_0_13_7_aes_hw_encrypt
-[...]
-```
-
-**Analysis:** Critical AWS-LC FIPS symbols are not being properly linked into the shared library.
-
-**Next Steps:**
-
-- Review the cross-compilation linking process
-- Check if all necessary object files are being included
-- Verify symbol visibility settings in the build
-
-### 4. Container Runfiles Library Path Resolution
-
-The container has incorrect library path structure:
-
-```
-/aws_lc_repro.runfiles
-├── _repo_mapping
-├── aws_lc_repro
-│   ├── _solib_k8
-│   │   ├── _U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Ccrypto___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7
-│   │   │   └── libaws_lc_fips_0_13_7_crypto.so
-│   │   └── _U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Crust_Uwrapper___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7
-│   │       └── libaws_lc_fips_0_13_7_rust_wrapper.so
-│   └── aws_lc_repro
-│       └── aws_lc_repro
-└── aws_lc_repro
-```
-
-**Issues:**
-
-- The `_U_A_A` prefixed paths indicate mangled/escaped paths that aren't being properly resolved
-- Executables don't receive proper library paths
-- Manual LD_LIBRARY_PATH setting is required
-
-**Next Steps:**
-
-- Investigate Bazel's runfiles tree generation for containers
-- Review how library paths are being escaped/mangled
-- Check if rules_oci needs specific configuration for shared libraries
+- Force use of cross-compilation toolchain even for current platform
+- Investigate toolchain selection logic in Bazel
+- Compare symbol layouts between host and cross-compiled binaries
 
 ## Debugging Recommendations
 
@@ -189,26 +112,88 @@ bazel build \
    - Investigate if static linking would resolve the integrity check
    - Review AWS-LC FIPS documentation for Bazel-specific guidance
 
-2. **Container Testing Infrastructure**
+2. **Toolchain Selection**
 
-   - Fix container runtime integration with podman/docker
-   - Resolve image naming and registry configuration issues
-   - Ensure container structure tests can locate built images
-
-3. **Cross-Compilation Linking**
-
-   - Resolve undefined symbols in shared libraries
-   - Ensure all AWS-LC object files are properly linked
-   - Review symbol visibility and export settings
-
-4. **Runfiles Path Resolution**
-   - Fix library path mangling in container runfiles
-   - Configure proper LD_LIBRARY_PATH or RPATH settings
-   - Investigate rules_oci shared library handling
+   - Force use of cross-compilation toolchain even for current platform
+   - Investigate why host toolchain is selected for native builds
+   - Compare symbol layouts between different toolchain builds
 
 ## Resolved Issues (Historical Context)
 
 The following issues have been resolved through recent commits but are preserved for reference:
+
+### Container Structure Test Execution (Resolved)
+
+Previously, container structure tests failed with image lookup errors because the `structure_test` binary was trying to use the wrong platform.
+
+```bash
+$ bazel run //aws_lc_repro:test
+```
+
+**Previous error output:**
+
+```
+exec ${PAGER:-/usr/bin/less} "$0" || exit 1
+Executing tests from //aws_lc_repro:test
+-----------------------------------------------------------------------------
+Loaded  cst.oci.local/sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3:sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3
+
+==================================
+====== Test file: test.json ======
+==================================
+=== RUN: Command Test: execute fips binary
+--- FAIL
+duration: 2.474125ms
+Error: Error creating container: API error (404): no such image: cst.oci.local/sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3:sha256-b8cf81a4fff1635b8ec55544461230a2cea815442d8aef018d1cd27f4fd4bdc3: image not known
+
+FAIL
+```
+
+**Resolution:** Fixed by explicitly setting the `platform` attribute and upgrading the container-structure-test rules to support that attribute.
+
+### Undefined Symbols in Cross-Compiled Libraries (Resolved)
+
+Previously, cross-compiled containers had shared libraries with undefined symbols like `aws_lc_fips_0_13_7_aes_hw_encrypt`.
+
+**Previous issue:**
+
+```bash
+# readelf -Ws /w/aws_lc_repro.runfiles/aws_lc_repro/_solib_k8/[...]/libaws_lc_fips_0_13_7_crypto.so
+
+Symbol table '.dynsym' contains 3508 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+[...]
+    92: 0000000000000000     0 NOTYPE  GLOBAL DEFAULT  UND aws_lc_fips_0_13_7_aes_hw_encrypt
+[...]
+```
+
+Critical AWS-LC FIPS symbols were not being properly linked into the shared library.
+
+**Resolution:** Fixed by upgrading Zig from 0.12 to 0.14.0, which improved linking behavior.
+
+### Container Runfiles Library Path Resolution (Resolved)
+
+Previously, the container had incorrect library path structure with mangled/escaped paths, causing executables to fail to find their shared libraries.
+
+**Previous issue:**
+
+```
+/aws_lc_repro.runfiles
+├── _repo_mapping
+├── aws_lc_repro
+│   ├── _solib_k8
+│   │   ├── _U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Ccrypto___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7
+│   │   │   └── libaws_lc_fips_0_13_7_crypto.so
+│   │   └── _U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Crust_Uwrapper___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7
+│   │       └── libaws_lc_fips_0_13_7_rust_wrapper.so
+│   └── aws_lc_repro
+│       └── aws_lc_repro
+└── aws_lc_repro
+```
+
+The `_U_A_A` prefixed paths indicated mangled/escaped paths that weren't being properly resolved. Executables didn't receive proper library paths, requiring manual LD_LIBRARY_PATH setting.
+
+**Resolution:** Fixed by explicitly using the `aws_lc_repro` executable inside the `aws_lc_repro.runfiles` directory instead of the one outside the runfiles.
 
 ### Previously: Build and Linking Failures
 

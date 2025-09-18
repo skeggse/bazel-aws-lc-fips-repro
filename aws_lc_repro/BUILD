@@ -17,7 +17,7 @@ rust_binary(
 tar(
     name = "aws_lc_repro.tar",
     srcs = [":aws_lc_repro"],
-    mutate = mutate(strip_prefix = "aws_lc_repro"),
+    mutate = mutate(strip_prefix = "aws_lc_repro/aws_lc_repro.runfiles"),
     compress = "gzip",
 )
 
@@ -29,22 +29,40 @@ oci_image(
 )
 
 multi_arch(
-    name = "image.transition",
+    name = "image.amd64",
     image = ":image.input",
-    platforms = [
-        # Label("//tools/starlark/oci/platforms:linux_amd64"),
-        # Label("//tools/starlark/oci/platforms:linux_arm64"),
-        "@zig_sdk//platform:linux_amd64",
-    ],
+    platforms = ["@zig_sdk//platform:linux_amd64"],
+)
+
+multi_arch(
+    name = "image.arm64",
+    image = ":image.input",
+    platforms = ["@zig_sdk//platform:linux_arm64"],
 )
 
 oci_image_index(
     name = "image",
-    images = [":image.transition"],
+    images = [":image.amd64"],
 )
 
 container_structure_test(
-    name = "test",
+    name = "test.amd64",
     configs = ["test.json"],
-    image = ":image.transition",
+    image = ":image.amd64",
+    platform = "linux/amd64",
+)
+
+container_structure_test(
+    name = "test.arm64",
+    configs = ["test.json"],
+    image = ":image.arm64",
+    platform = "linux/arm64",
+)
+
+test_suite(
+    name = "test",
+    tests = [
+        ":test.amd64",
+        ":test.arm64",
+    ],
 )

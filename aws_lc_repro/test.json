@@ -3,9 +3,9 @@
   "commandTests": [
     {
       "name": "execute fips binary",
-      "command": "aws_lc_repro",
+      "command": "aws_lc_repro/aws_lc_repro/aws_lc_repro",
       "args": [],
-      "expectedOutput": ["hi"]
+      "expectedOutput": ["AWS LC FIPS Version: AWS-LC FIPS 3.0.0"]
     }
   ]
 }

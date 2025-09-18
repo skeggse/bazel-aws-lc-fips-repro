@@ -15,6 +15,7 @@ py_repositories()
 
 # Rules Rust
 http_archive(
+    # This version of rules_rust isn't super important - works with both 0.60.0 and 0.64.0.
     name = "rules_rust",
     integrity = "sha256-2GH766nwQzOgrmnkSO6D1pF/JC3bt/41xo/CEqarpUY=",
     urls = ["https://github.com/bazelbuild/rules_rust/releases/download/0.64.0/rules_rust-0.64.0.tar.gz"],
@@ -55,11 +56,16 @@ crate_universe_dependencies()
 # Hermetic CC Toolchain (Zig)
 http_archive(
     name = "hermetic_cc_toolchain",
-    sha256 = "907745bf91555f77e8234c0b953371e6cac5ba715d1cf12ff641496dd1bce9d1",
-    urls = [
-        "https://mirror.bazel.build/github.com/uber/hermetic_cc_toolchain/releases/download/v3.1.1/hermetic_cc_toolchain-v3.1.1.tar.gz",
-        "https://github.com/uber/hermetic_cc_toolchain/releases/download/v3.1.1/hermetic_cc_toolchain-v3.1.1.tar.gz",
-    ],
+    # This is a pinned version of the toolchain that uses Zig 0.14.0.
+    # https://github.com/uber/hermetic_cc_toolchain/pull/203
+    #
+    # Zig 0.12 made a shared library that had a bunch of undefined symbols for no apparent reason.
+    # This caused the following error:
+    #
+    #   //aws_lc_repro/aws_lc_repro/aws_lc_repro: symbol lookup error: /aws_lc_repro/aws_lc_repro/../_solib_k8/_U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Ccrypto___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7/libaws_lc_fips_0_13_7_crypto.so: undefined symbol: aws_lc_fips_0_13_7_aes_hw_encrypt
+    sha256 = "ad9ba8a818cbd46e6beecb77d7248ca47ec68e261e141abbce967336b8646f5e",
+    strip_prefix = "hermetic_cc_toolchain-f08bb9b9291e81eafbdf28c9c6f8147ea60cb293",
+    url = "https://github.com/uber/hermetic_cc_toolchain/archive/f08bb9b9291e81eafbdf28c9c6f8147ea60cb293.tar.gz",
 )
 
 load("@hermetic_cc_toolchain//toolchain:defs.bzl", zig_toolchains = "toolchains")
@@ -124,12 +130,10 @@ rules_foreign_cc_dependencies()
 
 # Go SDK (needed for aws-lc-fips-sys build)
 http_archive(
+    # This version of rules_go isn't super important - works with both v0.48.0 and v0.57.0.
     name = "io_bazel_rules_go",
-    sha256 = "33acc4ae0f70502db4b893c9fc1dd7a9bf998c23e7ff2c4517741d4049a976f8",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.48.0/rules_go-v0.48.0.zip",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.48.0/rules_go-v0.48.0.zip",
-    ],
+    sha256 = "a729c8ed2447c90fe140077689079ca0acfb7580ec41637f312d650ce9d93d96",
+    url = "https://github.com/bazelbuild/rules_go/releases/download/v0.57.0/rules_go-v0.57.0.zip",
 )
 
 load("@io_bazel_rules_go//go:deps.bzl", "go_download_sdk", "go_register_toolchains", "go_rules_dependencies")
@@ -137,8 +141,15 @@ load("@io_bazel_rules_go//go:deps.bzl", "go_download_sdk", "go_register_toolchai
 go_rules_dependencies()
 
 go_download_sdk(
+    # This version of Go isn't super important - both 1.24.4 and 1.25.1 work.
     name = "go_sdk",
-    version = "1.24.4",
+    version = "1.25.1",
+    sdks = {
+        "darwin_amd64": ("go1.25.1.darwin-amd64.tar.gz", "1d622468f767a1b9fe1e1e67bd6ce6744d04e0c68712adc689748bbeccb126bb"),
+        "darwin_arm64": ("go1.25.1.darwin-arm64.tar.gz", "68deebb214f39d542e518ebb0598a406ab1b5a22bba8ec9ade9f55fb4dd94a6c"),
+        "linux_amd64": ("go1.25.1.linux-amd64.tar.gz", "7716a0d940a0f6ae8e1f3b3f4f36299dc53e31b16840dbd171254312c41ca12e"),
+        "linux_arm64": ("go1.25.1.linux-arm64.tar.gz", "65a3e34fb2126f55b34e1edfc709121660e1be2dee6bdf405fc399a63a95a87d"),
+    },
 )
 
 go_register_toolchains()
@@ -150,7 +161,7 @@ crates_repository(
     name = "rust_crate_index",
     annotations = {
         "aws-lc-fips-sys": [
-            # Adapted from https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
+            # Inspired by https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
             crate.annotation(
                 additive_build_file = "@aws_lc_repro//:aws_lc_fips_sys.bazel",
                 # Setting build_script_data makes the files available when the rule runs.
@@ -245,9 +256,14 @@ oci_pull(
 
 http_archive(
     name = "container_structure_test",
-    sha256 = "c91a76f7b4949775941f8308ee7676285555ae4756ec1ec990c609c975a55f93",
-    strip_prefix = "container-structure-test-1.19.3",
-    url = "https://github.com/GoogleContainerTools/container-structure-test/archive/refs/tags/v1.19.3.tar.gz",
+    # This is a pinned version of container-structure-test's Bazel rules that implements the
+    # platform attribute.
+    # https://github.com/GoogleContainerTools/container-structure-test/pull/469
+    #
+    # Pending https://github.com/GoogleContainerTools/container-structure-test/issues/466
+    sha256 = "272624bb01c85cfac2d34aefabf2d0d3f97347b2e0bc5eef3e803fa247b38503",
+    strip_prefix = "container-structure-test-56c7201716d770c0f820a9c19207ba2ea77c34f8",
+    url = "https://github.com/GoogleContainerTools/container-structure-test/archive/56c7201716d770c0f820a9c19207ba2ea77c34f8.tar.gz",
 )
 
 load("@container_structure_test//:repositories.bzl", "container_structure_test_register_toolchain")
