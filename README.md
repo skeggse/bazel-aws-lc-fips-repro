@@ -8,8 +8,8 @@
 
 **Current blockers:**
 
-- FIPS module integrity check fails due to symbol address space issues when compiling with host toolchain
 - Host toolchain is used instead of cross-compiling toolchain when compiling for the current platform
+- FIPS module integrity check fails due to symbol address space issues when compiling with host toolchain
 
 ## Prerequisites
 
