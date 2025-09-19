@@ -159,15 +159,21 @@ go_register_toolchains()
 # Crate repositories for FIPS and non-FIPS builds
 load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
 
-rustls_fips = crate.spec(package = "rustls", version = "0.23.31", default_features = False, features = ["fips"])
+# rustls_fips = crate.spec(package = "rustls", version = "0.23.31", default_features = False, features = ["fips"])
 
 # FIPS crate repository (using aws-lc-fips-sys)
 crates_repository(
     name = "rust_crate_index_fips",
-    packages = {
-        "rustls": rustls_fips,
-    },
+    # packages = {
+    #     "rustls": rustls_fips,
+    # },
     annotations = {
+        "rustls": [
+            crate.annotation(
+                # default_features = False,
+                crate_features = ["fips"],
+            ),
+        ],
         "aws-lc-fips-sys": [
             # Inspired by https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
             crate.annotation(
