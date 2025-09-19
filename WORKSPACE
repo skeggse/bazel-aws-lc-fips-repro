@@ -292,9 +292,9 @@ crates_repository(
         "rustls": crate.spec(
             default_features = False,
             features = [
+                # Avoid `prefer-post-quantum` since that drags in `aws-lc-rs`.
                 "ring",
                 "std",
-                "prefer-post-quantum",
                 "logging",
                 "tls12",
             ],

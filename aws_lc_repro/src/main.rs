@@ -1,13 +1,10 @@
 use std::io::Write;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut roots = rustls::RootCertStore::empty();
-    for cert in rustls_native_certs::load_native_certs().expect("could not load platform certs") {
-        roots.add(cert).unwrap();
-    }
+use rustls_platform_verifier::BuilderVerifierExt;
 
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = rustls::ClientConfig::builder()
-        .with_root_certificates(roots)
+        .with_platform_verifier()
         .with_no_client_auth();
 
     let server_name = "example.com".try_into()?;
