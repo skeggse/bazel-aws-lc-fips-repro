@@ -2,16 +2,26 @@ load("@container_structure_test//:defs.bzl", "container_structure_test")
 load("@rules_oci//oci:defs.bzl", "oci_image", "oci_image_index")
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rust_crate_index//:defs.bzl", "aliases", "all_crate_deps")
+load("@rust_crate_index_fips//:defs.bzl", fips_aliases = "aliases", fips_all_crate_deps = "all_crate_deps")
 load("@tar.bzl", "mutate", "tar")
 load("//:multi_arch.bzl", "multi_arch")
 
 rust_binary(
     name = "aws_lc_repro",
     srcs = ["src/main.rs"],
-    aliases = aliases(),
-    proc_macro_deps = all_crate_deps(proc_macro = True),
+    aliases = select({
+        "@rules_rust//rust/platform:darwin": aliases(),
+        "//conditions:default": fips_aliases(),
+    }),
+    proc_macro_deps = select({
+        "@rules_rust//rust/platform:darwin": all_crate_deps(proc_macro = True),
+        "//conditions:default": fips_all_crate_deps(proc_macro = True),
+    }),
     visibility = ["//visibility:public"],
-    deps = all_crate_deps(),
+    deps = select({
+        "@rules_rust//rust/platform:darwin": all_crate_deps(),
+        "//conditions:default": fips_all_crate_deps(),
+    }),
 )
 
 tar(

@@ -56,16 +56,18 @@ crate_universe_dependencies()
 # Hermetic CC Toolchain (Zig)
 http_archive(
     name = "hermetic_cc_toolchain",
-    # This is a pinned version of the toolchain that uses Zig 0.14.0.
+    # This is a pinned version of the toolchain that uses Zig 0.14.0. It incorporates changes from
+    # both PRs below to fix cc target parsing (previously handled with asana/cc-rs).
     # https://github.com/uber/hermetic_cc_toolchain/pull/203
+    # https://github.com/uber/hermetic_cc_toolchain/pull/223
     #
     # Zig 0.12 made a shared library that had a bunch of undefined symbols for no apparent reason.
     # This caused the following error:
     #
     #   //aws_lc_repro/aws_lc_repro/aws_lc_repro: symbol lookup error: /aws_lc_repro/aws_lc_repro/../_solib_k8/_U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Ccrypto___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7/libaws_lc_fips_0_13_7_crypto.so: undefined symbol: aws_lc_fips_0_13_7_aes_hw_encrypt
-    sha256 = "ad9ba8a818cbd46e6beecb77d7248ca47ec68e261e141abbce967336b8646f5e",
-    strip_prefix = "hermetic_cc_toolchain-f08bb9b9291e81eafbdf28c9c6f8147ea60cb293",
-    url = "https://github.com/uber/hermetic_cc_toolchain/archive/f08bb9b9291e81eafbdf28c9c6f8147ea60cb293.tar.gz",
+    sha256 = "7ab8ec9cbd23cfe6b1e43a805fed859e17f4e2de58f60cea0638881d11a3fe3d",
+    strip_prefix = "hermetic_cc_toolchain-97761cc14757cd727c9bd093280d9369d911ab89",
+    url = "https://github.com/uber/hermetic_cc_toolchain/archive/97761cc14757cd727c9bd093280d9369d911ab89.tar.gz",
 )
 
 load("@hermetic_cc_toolchain//toolchain:defs.bzl", zig_toolchains = "toolchains")
@@ -154,11 +156,17 @@ go_download_sdk(
 
 go_register_toolchains()
 
-# Crate repository with aws-lc-fips-sys annotations
+# Crate repositories for FIPS and non-FIPS builds
 load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
 
+rustls_fips = crate.spec(package = "rustls", version = "0.23.31", default_features = False, features = ["fips"])
+
+# FIPS crate repository (using aws-lc-fips-sys)
 crates_repository(
-    name = "rust_crate_index",
+    name = "rust_crate_index_fips",
+    packages = {
+        "rustls": rustls_fips,
+    },
     annotations = {
         "aws-lc-fips-sys": [
             # Inspired by https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
@@ -212,20 +220,33 @@ crates_repository(
             ),
         ],
     },
+    cargo_lockfile = "//:Cargo.fips.lock",
+    isolated = True,  # Allow access to host cargo registry for index
+    lockfile = "//:cargo-bazel-fips-lock.json",
+    manifests = ["//:Cargo.toml"],
+    rust_version = RUST_VERSION,
+    supported_platform_triples = SUPPORTED_PLATFORMS,
+)
+
+# Non-FIPS crate repository (using ring)
+#
+# We want the one that runs with `cargo run` on macOS to use non-FIPS by default, since macOS FIPS
+# support is nascent.
+crates_repository(
+    name = "rust_crate_index",
     cargo_lockfile = "//:Cargo.lock",
     isolated = True,  # Allow access to host cargo registry for index
-    lockfile = "//:cargo-bazel-lock.json",
-    manifests = [
-        "//:Cargo.toml",
-        "//:aws_lc_repro/Cargo.toml",
-    ],
+    lockfile = "//:cargo-bazel-nofips-lock.json",
+    manifests = ["//:Cargo.toml"],
     rust_version = RUST_VERSION,
     supported_platform_triples = SUPPORTED_PLATFORMS,
 )
 
 load("@rust_crate_index//:defs.bzl", "crate_repositories")
+load("@rust_crate_index_fips//:defs.bzl", crate_repositories_fips = "crate_repositories")
 
 crate_repositories()
+crate_repositories_fips()
 
 http_archive(
     name = "rules_oci",

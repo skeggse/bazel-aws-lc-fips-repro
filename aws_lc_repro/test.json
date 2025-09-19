@@ -2,10 +2,10 @@
   "schemaVersion": "2.0.0",
   "commandTests": [
     {
-      "name": "execute fips binary",
+      "name": "execute rustls binary with TLS connection",
       "command": "aws_lc_repro/aws_lc_repro/aws_lc_repro",
       "args": [],
-      "expectedOutput": ["AWS LC FIPS Version: AWS-LC FIPS 3.0.0"]
+      "expectedOutput": ["Connection is using FIPS mode", "Connection established successfully using rustls"]
     }
   ]
 }

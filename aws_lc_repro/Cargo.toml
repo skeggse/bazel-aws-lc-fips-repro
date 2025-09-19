@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-aws-lc-fips-sys = "0.13.7"
+rustls = { version = "0.23", features = ["std", "prefer-post-quantum", "logging", "tls12"], default-features = false }
+rustls-native-certs = "0.8"
