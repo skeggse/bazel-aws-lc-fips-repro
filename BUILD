@@ -73,6 +73,17 @@ test_suite(
     ],
 )
 
+# Aggregate test suite for all tests in the repository.
+# This allows running all tests with a single command, simplifying
+# validation of both FIPS and non-FIPS configurations.
+test_suite(
+    name = "test",
+    tests = [
+        ":test_dependencies",
+        "//aws_lc_repro:test",
+    ],
+)
+
 # Export build support files for use by external repositories.
 # The wrapper scripts work around cross-compilation issues with aws-lc-fips-sys.
 # Cargo files are exported for crate_universe to process dependencies.
