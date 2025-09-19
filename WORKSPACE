@@ -1,7 +1,23 @@
+"""
+This WORKSPACE file configures a Bazel build environment for cross-platform Rust development
+with support for FIPS-compliant cryptography libraries.
+
+The primary purpose is to demonstrate and reproduce issues with AWS-LC FIPS (Federal Information
+Processing Standards) compliant cryptographic libraries in a Rust/Bazel environment. This setup
+enables switching between FIPS and non-FIPS cryptographic backends at build time.
+
+Key capabilities:
+- Cross-platform builds for Linux and macOS (x86_64 and ARM64)
+- Selective FIPS compliance using aws-lc-fips-sys or ring for cryptography
+- Container image creation with distroless base images
+- Hermetic C/C++ toolchain using Zig for reproducible cross-compilation
+"""
+
 workspace(name = "aws_lc_repro")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+# Python rules are required for build tooling and test infrastructure.
 http_archive(
     name = "rules_python",
     sha256 = "fa532d635f29c038a64c8062724af700c30cf6b31174dd4fac120bc561a1a560",
@@ -13,7 +29,7 @@ load("@rules_python//python:repositories.bzl", "py_repositories")
 
 py_repositories()
 
-# Rules Rust
+# Rules Rust provides the core Rust build infrastructure for Bazel.
 http_archive(
     # This version of rules_rust isn't super important - works with both 0.60.0 and 0.64.0.
     name = "rules_rust",
@@ -23,8 +39,10 @@ http_archive(
 
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
+# Rust toolchain version used across all builds.
 RUST_VERSION = "1.86.0"
 
+# Target platforms for cross-compilation.
 SUPPORTED_PLATFORMS = [
     "x86_64-unknown-linux-gnu",
     "x86_64-apple-darwin",
@@ -34,7 +52,7 @@ SUPPORTED_PLATFORMS = [
 
 rules_rust_dependencies()
 
-# Crate Universe for managing Rust dependencies
+# Crate Universe enables Bazel to understand and build Cargo dependencies.
 load("@rules_rust//crate_universe:repositories.bzl", "crate_universe_dependencies")
 
 rust_register_toolchains(
@@ -53,7 +71,9 @@ rust_register_toolchains(
 
 crate_universe_dependencies()
 
-# Hermetic CC Toolchain (Zig)
+# Hermetic CC Toolchain provides reproducible C/C++ compilation using Zig.
+# This is essential for cross-compiling aws-lc-fips-sys which contains C code.
+# The hermetic nature ensures builds are reproducible across different host systems.
 http_archive(
     name = "hermetic_cc_toolchain",
     # This is a pinned version of the toolchain that uses Zig 0.14.0. It incorporates changes from
@@ -91,16 +111,20 @@ aspect_bazel_lib_register_toolchains()
 # to WORKSPACE semantics. Workaround for https://github.com/bazel-contrib/tar.bzl/issues/61.
 http_archive(
     name = "gawk",
-    remote_file_urls = {
-        f: ["https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/refs/heads/main/modules/gawk/5.3.2.bcr.1/overlay/" + f]
-        for f in ["BUILD.bazel", "posix/config_darwin.h", "posix/config_linux.h"]
-    },
+    integrity = "sha256-+MNIZQnecFGSE4sA7ywAu73Q6Eww1cB9I/xzqdxMycw=",
     remote_file_integrity = {
         "BUILD.bazel": "sha256-dt89+9IJ3UzQvoKzyXOiBoF6ok/4u4G0cb0Ja+plFy0=",
         "posix/config_darwin.h": "sha256-gPVRlvtdXPw4Ikwd5S89wPPw5AaiB2HTHa1KOtj40mU=",
         "posix/config_linux.h": "sha256-iEaeXYBUCvprsIEEi5ipwqt0JV8d73+rLgoBYTegC6Q=",
     },
-    integrity = "sha256-+MNIZQnecFGSE4sA7ywAu73Q6Eww1cB9I/xzqdxMycw=",
+    remote_file_urls = {
+        f: ["https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/refs/heads/main/modules/gawk/5.3.2.bcr.1/overlay/" + f]
+        for f in [
+            "BUILD.bazel",
+            "posix/config_darwin.h",
+            "posix/config_linux.h",
+        ]
+    },
     strip_prefix = "gawk-5.3.2",
     urls = ["https://ftpmirror.gnu.org/gnu/gawk/gawk-5.3.2.tar.xz"],
 )
@@ -112,13 +136,22 @@ http_archive(
     url = "https://github.com/bazel-contrib/tar.bzl/releases/download/v0.5.6/tar.bzl-v0.5.6.tar.gz",
 )
 
-# Register Zig toolchains for cross-compilation
+# Register Zig toolchains for cross-compilation.
+# These toolchains enable building Linux binaries from macOS hosts,
+# which is crucial for container image creation in CI/CD pipelines.
+#
+# The trailing version numbers here correspond to glibc versions, but their exact role is unclear.
+# Zig complains with the following error, but omitting the version breaks in other ways.
+#
+#   "Build Script Warning: zig: error: version '.2.31' in target triple 'x86_64-unknown-linux-gnu.2.31' is invalid"
 register_toolchains(
     "@zig_sdk//toolchain:linux_amd64_gnu.2.31",
     "@zig_sdk//toolchain:linux_arm64_gnu.2.31",
 )
 
-# Rules Foreign CC for CMake support
+# Rules Foreign CC enables building CMake projects within Bazel.
+# This is required because aws-lc-fips-sys uses CMake to build the
+# underlying AWS-LC cryptographic library written in C.
 http_archive(
     name = "rules_foreign_cc",
     sha256 = "32759728913c376ba45b0116869b71b68b1c2ebf8f2bcf7b41222bc07b773d73",
@@ -130,7 +163,11 @@ load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_depende
 
 rules_foreign_cc_dependencies()
 
-# Go SDK (needed for aws-lc-fips-sys build)
+# Go SDK is required for building aws-lc-fips-sys.
+# The AWS-LC FIPS module uses Go for its delocation process, which is necessary to meet FIPS 140-2
+# Level 1 requirements for cryptographic module integrity. We may not actually use the delocator
+# due to building a shared library instead of a static library, but we haven't bothered tweaking
+# the build script to avoid the Go dependency.
 http_archive(
     # This version of rules_go isn't super important - works with both v0.48.0 and v0.57.0.
     name = "io_bazel_rules_go",
@@ -145,35 +182,28 @@ go_rules_dependencies()
 go_download_sdk(
     # This version of Go isn't super important - both 1.24.4 and 1.25.1 work.
     name = "go_sdk",
-    version = "1.25.1",
     sdks = {
         "darwin_amd64": ("go1.25.1.darwin-amd64.tar.gz", "1d622468f767a1b9fe1e1e67bd6ce6744d04e0c68712adc689748bbeccb126bb"),
         "darwin_arm64": ("go1.25.1.darwin-arm64.tar.gz", "68deebb214f39d542e518ebb0598a406ab1b5a22bba8ec9ade9f55fb4dd94a6c"),
         "linux_amd64": ("go1.25.1.linux-amd64.tar.gz", "7716a0d940a0f6ae8e1f3b3f4f36299dc53e31b16840dbd171254312c41ca12e"),
         "linux_arm64": ("go1.25.1.linux-arm64.tar.gz", "65a3e34fb2126f55b34e1edfc709121660e1be2dee6bdf405fc399a63a95a87d"),
     },
+    version = "1.25.1",
 )
 
 go_register_toolchains()
 
-# Crate repositories for FIPS and non-FIPS builds
+# Dual crate repositories enable switching between FIPS and non-FIPS crypto.
+# This separation is necessary because aws-lc-fips-sys and ring perform the same function, and we
+# cannot ship `ring` in a FIPS-compliant binary.
 load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
 
-# rustls_fips = crate.spec(package = "rustls", version = "0.23.31", default_features = False, features = ["fips"])
-
-# FIPS crate repository (using aws-lc-fips-sys)
+# FIPS crate repository uses aws-lc-fips-sys for cryptographic operations.
+# This provides FIPS 140-2 Level 1 validated cryptography but requires
+# additional build complexity (CMake, Go, dynamic linking).
 crates_repository(
     name = "rust_crate_index_fips",
-    # packages = {
-    #     "rustls": rustls_fips,
-    # },
     annotations = {
-        "rustls": [
-            crate.annotation(
-                # default_features = False,
-                crate_features = ["fips"],
-            ),
-        ],
         "aws-lc-fips-sys": [
             # Inspired by https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
             crate.annotation(
@@ -230,20 +260,48 @@ crates_repository(
     isolated = True,  # Allow access to host cargo registry for index
     lockfile = "//:cargo-bazel-fips-lock.json",
     manifests = ["//:Cargo.toml"],
+    packages = {
+        "rustls": crate.spec(
+            default_features = False,
+            features = [
+                "fips",
+                "std",
+                "prefer-post-quantum",
+                "logging",
+                "tls12",
+            ],
+            package = "rustls",
+            version = "0.23.31",
+        ),
+    },
     rust_version = RUST_VERSION,
     supported_platform_triples = SUPPORTED_PLATFORMS,
 )
 
-# Non-FIPS crate repository (using ring)
-#
-# We want the one that runs with `cargo run` on macOS to use non-FIPS by default, since macOS FIPS
-# support is nascent.
+# Non-FIPS crate repository uses ring for cryptographic operations.
+# Ring is faster to build and has fewer dependencies but is not FIPS validated.
+# We default to non-FIPS on macOS because FIPS support there is experimental
+# and the additional build complexity isn't justified.
 crates_repository(
     name = "rust_crate_index",
     cargo_lockfile = "//:Cargo.lock",
     isolated = True,  # Allow access to host cargo registry for index
     lockfile = "//:cargo-bazel-nofips-lock.json",
     manifests = ["//:Cargo.toml"],
+    packages = {
+        "rustls": crate.spec(
+            default_features = False,
+            features = [
+                "ring",
+                "std",
+                "prefer-post-quantum",
+                "logging",
+                "tls12",
+            ],
+            package = "rustls",
+            version = "0.23.31",
+        ),
+    },
     rust_version = RUST_VERSION,
     supported_platform_triples = SUPPORTED_PLATFORMS,
 )
@@ -252,6 +310,7 @@ load("@rust_crate_index//:defs.bzl", "crate_repositories")
 load("@rust_crate_index_fips//:defs.bzl", crate_repositories_fips = "crate_repositories")
 
 crate_repositories()
+
 crate_repositories_fips()
 
 http_archive(

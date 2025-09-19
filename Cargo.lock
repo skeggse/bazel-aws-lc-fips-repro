@@ -651,9 +651,3 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
-
-[[patch.unused]]
-name = "cc"
-version = "1.2.15"
-source = "git+https://github.com/Asana/cc-rs.git?branch=main#56cb08f3b2651912c547b0bedc3713df9d7b3c18"
-

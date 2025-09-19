@@ -1,5 +1,5 @@
 {
-  "checksum": "b3209581f31cd386b9d1f9cf5759dbcdbe2b2b7845e92dbbbaeede7afa79e1e6",
+  "checksum": "845443f3cc7bbc61c25f99dd22dfa356a50eec627dbeb77de3d81378e96a9164",
   "crates": {
     "aho-corasick 1.1.3": {
       "name": "aho-corasick",
@@ -825,6 +825,46 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "direct-cargo-bazel-deps 0.0.1": {
+      "name": "direct-cargo-bazel-deps",
+      "version": "0.0.1",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "direct_cargo_bazel_deps",
+            "crate_root": ".direct_cargo_bazel_deps.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "direct_cargo_bazel_deps",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "rustls 0.23.32",
+              "target": "rustls"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.0.1"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
     },
     "dunce 1.0.5": {
       "name": "dunce",
@@ -2123,6 +2163,14 @@
         "compile_data_glob": [
           "**"
         ],
+        "crate_features": {
+          "common": [
+            "alloc",
+            "default",
+            "dev_urandom_fallback"
+          ],
+          "selects": {}
+        },
         "deps": {
           "common": [
             {
@@ -2281,6 +2329,7 @@
             "log",
             "logging",
             "prefer-post-quantum",
+            "ring",
             "std",
             "tls12"
           ],
@@ -2299,6 +2348,10 @@
             {
               "id": "once_cell 1.21.3",
               "target": "once_cell"
+            },
+            {
+              "id": "ring 0.17.14",
+              "target": "ring"
             },
             {
               "id": "rustls 0.23.32",
@@ -2342,6 +2395,10 @@
             {
               "id": "aws-lc-rs 1.14.0",
               "target": "aws_lc_rs"
+            },
+            {
+              "id": "ring 0.17.14",
+              "target": "ring"
             }
           ],
           "selects": {}
@@ -2513,6 +2570,7 @@
           "common": [
             "alloc",
             "aws-lc-rs",
+            "ring",
             "std"
           ],
           "selects": {}
@@ -2522,6 +2580,10 @@
             {
               "id": "aws-lc-rs 1.14.0",
               "target": "aws_lc_rs"
+            },
+            {
+              "id": "ring 0.17.14",
+              "target": "ring"
             },
             {
               "id": "rustls-pki-types 1.12.0",
@@ -4692,7 +4754,8 @@
   },
   "binary_crates": [],
   "workspace_members": {
-    "aws_lc_repro 0.1.0": "aws_lc_repro"
+    "aws_lc_repro 0.1.0": "aws_lc_repro",
+    "direct-cargo-bazel-deps 0.0.1": ""
   },
   "conditions": {
     "aarch64-apple-darwin": [
@@ -4764,11 +4827,5 @@
     "rustls-native-certs 0.8.1"
   ],
   "direct_dev_deps": [],
-  "unused_patches": [
-    {
-      "name": "cc",
-      "version": "1.2.15",
-      "source": "git+https://github.com/Asana/cc-rs.git?branch=main#56cb08f3b2651912c547b0bedc3713df9d7b3c18"
-    }
-  ]
+  "unused_patches": []
 }

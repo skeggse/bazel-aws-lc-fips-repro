@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "2.0.0",
+  "commandTests": [
+    {
+      "name": "execute rustls binary with TLS connection",
+      "command": "aws_lc_repro/aws_lc_repro/aws_lc_repro",
+      "args": [],
+      "expectedOutput": ["Connection is NOT using FIPS mode", "Connection established successfully using rustls"]
+    }
+  ]
+}
