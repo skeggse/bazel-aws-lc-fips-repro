@@ -56,7 +56,7 @@ native_test(
     src = "@jq",
     args = [
         "-e",
-        "'.crates | map({key: .name, value: true}) | from_entries | {ring, \"aws-lc-sys\", \"aws-lc-fips-sys\", \"aws-lc-rs\"} | stderr | . == {\"ring\":null,\"aws-lc-sys\":true,\"aws-lc-sys-fips\":true,\"aws-lc-rs\":true}'",
+        "'.crates | map({key: .name, value: true}) | from_entries | {ring, \"aws-lc-sys\", \"aws-lc-fips-sys\", \"aws-lc-rs\"} | stderr | . == {\"ring\":null,\"aws-lc-sys\":true,\"aws-lc-fips-sys\":true,\"aws-lc-rs\":true}'",
         "$(location :cargo-bazel-fips-lock.json)",
     ],
     data = [":cargo-bazel-fips-lock.json"],

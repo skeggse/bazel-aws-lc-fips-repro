@@ -204,6 +204,13 @@ load("@rules_rust//crate_universe:defs.bzl", "crate", "crates_repository")
 crates_repository(
     name = "rust_crate_index_fips",
     annotations = {
+        "ring": [
+            crate.annotation(
+                override_targets = {
+                    "lib": "//:doesnotcompile",
+                },
+            ),
+        ],
         "aws-lc-fips-sys": [
             # Inspired by https://github.com/bazel-contrib/rules_foreign_cc/blob/main/examples/WORKSPACE.bazel.
             crate.annotation(
@@ -292,8 +299,7 @@ crates_repository(
         "rustls": crate.spec(
             default_features = False,
             features = [
-                # Avoid `prefer-post-quantum` since that drags in `aws-lc-rs`.
-                "ring",
+                "prefer-post-quantum",
                 "std",
                 "logging",
                 "tls12",

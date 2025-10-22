@@ -1,5 +1,5 @@
 {
-  "checksum": "6be2aed4660c349c6306f211123d5a46da114c5540bd60ca5203729c47e4b824",
+  "checksum": "a180f9be15a1d99c0811e1be23d5f4595f2ec0b51c947149c27fb98e3ba1beee",
   "crates": {
     "aho-corasick 1.1.3": {
       "name": "aho-corasick",
@@ -1285,6 +1285,37 @@
         },
         "edition": "2018",
         "version": "0.0.1"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": null
+    },
+    "doesnotcompile 0.1.0": {
+      "name": "doesnotcompile",
+      "version": "0.1.0",
+      "package_url": null,
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "doesnotcompile",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "doesnotcompile",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2024",
+        "version": "0.1.0"
       },
       "license": null,
       "license_ids": [],
@@ -3116,7 +3147,10 @@
         "Apache-2.0",
         "ISC"
       ],
-      "license_file": "LICENSE"
+      "license_file": "LICENSE",
+      "override_targets": {
+        "lib": "//:doesnotcompile"
+      }
     },
     "rustc-hash 1.1.0": {
       "name": "rustc-hash",
@@ -7154,7 +7188,8 @@
   "binary_crates": [],
   "workspace_members": {
     "aws_lc_repro 0.1.0": "aws_lc_repro",
-    "direct-cargo-bazel-deps 0.0.1": ""
+    "direct-cargo-bazel-deps 0.0.1": "",
+    "doesnotcompile 0.1.0": "doesnotcompile"
   },
   "conditions": {
     "aarch64-apple-darwin": [

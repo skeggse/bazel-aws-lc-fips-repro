@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rustls = { version = "0.23", features = ["std", "logging", "tls12"], default-features = false }
+rustls = { version = "0.23", features = ["prefer-post-quantum", "std", "logging", "tls12"], default-features = false }
 rustls-platform-verifier = "0.5"
