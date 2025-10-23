@@ -72,22 +72,16 @@ rust_register_toolchains(
 crate_universe_dependencies()
 
 # Hermetic CC Toolchain provides reproducible C/C++ compilation using Zig.
-# This is essential for cross-compiling aws-lc-fips-sys which contains C code.
+# This is essential for cross-compiling various C targets.
 # The hermetic nature ensures builds are reproducible across different host systems.
 http_archive(
     name = "hermetic_cc_toolchain",
-    # This is a pinned version of the toolchain that uses Zig 0.14.0. It incorporates changes from
-    # both PRs below to fix cc target parsing (previously handled with asana/cc-rs).
-    # https://github.com/uber/hermetic_cc_toolchain/pull/203
+    # It incorporates changes from the following PR to fix cc target parsing (previously
+    # handled with asana/cc-rs).
     # https://github.com/uber/hermetic_cc_toolchain/pull/223
-    #
-    # Zig 0.12 made a shared library that had a bunch of undefined symbols for no apparent reason.
-    # This caused the following error:
-    #
-    #   //aws_lc_repro/aws_lc_repro/aws_lc_repro: symbol lookup error: /aws_lc_repro/aws_lc_repro/../_solib_k8/_U_A_Arust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7_S_S_Ccrypto___Uexternal_Srust_Ucrate_Uindex_U_Uaws-lc-fips-sys-0.13.7/libaws_lc_fips_0_13_7_crypto.so: undefined symbol: aws_lc_fips_0_13_7_aes_hw_encrypt
-    sha256 = "7ab8ec9cbd23cfe6b1e43a805fed859e17f4e2de58f60cea0638881d11a3fe3d",
-    strip_prefix = "hermetic_cc_toolchain-97761cc14757cd727c9bd093280d9369d911ab89",
-    url = "https://github.com/uber/hermetic_cc_toolchain/archive/97761cc14757cd727c9bd093280d9369d911ab89.tar.gz",
+    sha256 = "4d672641c118e288f523159c9c678396ea122dd32fab05f67519b54b759886b4",
+    strip_prefix = "hermetic_cc_toolchain-e906f270fa38c1fe0b2db346717d2f2cd90da123",
+    url = "https://github.com/uber/hermetic_cc_toolchain/archive/e906f270fa38c1fe0b2db346717d2f2cd90da123.tar.gz",
 )
 
 load("@hermetic_cc_toolchain//toolchain:defs.bzl", zig_toolchains = "toolchains")
