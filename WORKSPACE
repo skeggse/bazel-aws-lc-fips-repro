@@ -131,9 +131,15 @@ http_archive(
 
 http_archive(
     name = "tar.bzl",
-    sha256 = "29a3c99c28deca5f8245e2fc32ffdb99c1ea69316462718f3bebfff441d36e4a",
-    strip_prefix = "tar.bzl-0.5.6",
-    url = "https://github.com/bazel-contrib/tar.bzl/releases/download/v0.5.6/tar.bzl-v0.5.6.tar.gz",
+    # This is a pinned commit that incorporates
+    # https://github.com/bazel-contrib/tar.bzl/pull/77 to fix
+    # https://github.com/bazel-contrib/tar.bzl/issues/76.
+    sha256 = "b34530794207cfc14a249771ba4b3eedb28b51f2b127238b727b88452b770d90",
+    strip_prefix = "tar.bzl-762f190ee4d4b0363b3921380e9042815a4db697",
+    url = "https://github.com/bazel-contrib/tar.bzl/archive/762f190ee4d4b0363b3921380e9042815a4db697.tar.gz",
+    # sha256 = "29a3c99c28deca5f8245e2fc32ffdb99c1ea69316462718f3bebfff441d36e4a",
+    # strip_prefix = "tar.bzl-0.5.6",
+    # url = "https://github.com/bazel-contrib/tar.bzl/releases/download/v0.5.6/tar.bzl-v0.5.6.tar.gz",
 )
 
 # Register Zig toolchains for cross-compilation.
