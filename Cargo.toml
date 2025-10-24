@@ -1,4 +1,3 @@
 [workspace]
-members = ["aws_lc_repro", "doesnotcompile"]
-default-members = ["aws_lc_repro"]
+members = ["aws_lc_repro"]
 resolver = "2"

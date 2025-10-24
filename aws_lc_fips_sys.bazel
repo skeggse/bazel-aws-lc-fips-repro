@@ -22,7 +22,7 @@ genrule(
     name = "_crypto_darwin",
     srcs = [":build_script_main"],
     outs = [
-        "libaws_lc_fips_0_13_7_crypto.dylib",
+        "libaws_lc_fips_0_13_9_crypto.dylib",
     ],
     cmd = "ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
 )
@@ -31,7 +31,7 @@ genrule(
     name = "_crypto_linux",
     srcs = [":build_script_main"],
     outs = [
-        "libaws_lc_fips_0_13_7_crypto.so",
+        "libaws_lc_fips_0_13_9_crypto.so",
     ],
     cmd = "ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
 )
@@ -48,7 +48,7 @@ genrule(
     name = "_rust_wrapper_darwin",
     srcs = [":build_script_main"],
     outs = [
-        "libaws_lc_fips_0_13_7_rust_wrapper.dylib",
+        "libaws_lc_fips_0_13_9_rust_wrapper.dylib",
     ],
     cmd = "ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
 )
@@ -57,7 +57,7 @@ genrule(
     name = "_rust_wrapper_linux",
     srcs = [":build_script_main"],
     outs = [
-        "libaws_lc_fips_0_13_7_rust_wrapper.so",
+        "libaws_lc_fips_0_13_9_rust_wrapper.so",
     ],
     cmd = "ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@",
 )

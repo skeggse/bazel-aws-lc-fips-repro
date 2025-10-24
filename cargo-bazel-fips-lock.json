@@ -1,5 +1,5 @@
 {
-  "checksum": "a180f9be15a1d99c0811e1be23d5f4595f2ec0b51c947149c27fb98e3ba1beee",
+  "checksum": "4530005958903a5397b1ef5fe8cdffa01a696f85593777a37b8a5f4d2ebe0ec7",
   "crates": {
     "aho-corasick 1.1.3": {
       "name": "aho-corasick",
@@ -56,14 +56,14 @@
       ],
       "license_file": "LICENSE-MIT"
     },
-    "aws-lc-fips-sys 0.13.7": {
+    "aws-lc-fips-sys 0.13.9": {
       "name": "aws-lc-fips-sys",
-      "version": "0.13.7",
+      "version": "0.13.9",
       "package_url": "https://github.com/aws/aws-lc-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/aws-lc-fips-sys/0.13.7/download",
-          "sha256": "2608e5a7965cc9d58c56234d346c9c89b824c4c8652b6f047b3bd0a777c0644f",
+          "url": "https://static.crates.io/crates/aws-lc-fips-sys/0.13.9/download",
+          "sha256": "ede71ad84efb06d748d9af3bc500b14957a96282a69a6833b1420dcacb411cc3",
           "patch_args": [
             "-p1"
           ],
@@ -107,7 +107,7 @@
         "deps": {
           "common": [
             {
-              "id": "aws-lc-fips-sys 0.13.7",
+              "id": "aws-lc-fips-sys 0.13.9",
               "target": "build_script_main"
             }
           ],
@@ -121,7 +121,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.13.7"
+        "version": "0.13.9"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -168,7 +168,7 @@
           "selects": {
             "cfg(not(all(any(target_arch = \"x86_64\", target_arch = \"aarch64\"), any(target_os = \"linux\", target_os = \"macos\"), any(target_env = \"gnu\", target_env = \"musl\", target_env = \"\"))))": [
               {
-                "id": "bindgen 0.69.5",
+                "id": "bindgen 0.72.1",
                 "target": "bindgen"
               }
             ]
@@ -190,7 +190,7 @@
           ],
           "selects": {}
         },
-        "links": "aws_lc_fips_0_13_7",
+        "links": "aws_lc_fips_0_13_9",
         "toolchains": [
           "@rules_foreign_cc//toolchains:current_cmake_toolchain"
         ]
@@ -202,7 +202,7 @@
         "OpenSSL"
       ],
       "license_file": "LICENSE",
-      "additive_build_file_content": "\"\"\"\nHACK (reid@aspect.build 2025-08-27):\n  Additive buildfile content required to make libaws-lc-fips sorta work.\n\n  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips\n  produces dynlib extensions rules_rust can't see statically when it generates\n  the buildfile for the crate. Specifically the Cargo buildscript dynamically\n  produces dynlibs into a tree artifact which is not a dep of the\n  rust_library, and also creates a dynamic dependency statement which\n  rules_rust can't honor because Bazel is a static [dependency] build system.\n\n  As a workaround, we create these rules which serve only to copy the dynlib\n  artifacts out of the build.rs's results TreeArtifact and to declared output\n  locations which we can then treat as normal cc_import libraries and add to\n  the crate as compile deps.\n\n  Bazel requires that the genrule outs= attribute not be configurable, so\n  rather than having two copy rules we have to have four. Oh well.\n\"\"\"\n\ngenrule(\n    name = \"_crypto_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_crypto.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_crypto_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_crypto.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"crypto\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_crypto_linux\",\n        \"@platforms//os:macos\": \":_crypto_darwin\",\n    }),\n)\n\ngenrule(\n    name = \"_rust_wrapper_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_rust_wrapper.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_rust_wrapper_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_7_rust_wrapper.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"rust_wrapper\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_rust_wrapper_linux\",\n        \"@platforms//os:macos\": \":_rust_wrapper_darwin\",\n    }),\n)\n"
+      "additive_build_file_content": "\"\"\"\nHACK (reid@aspect.build 2025-08-27):\n  Additive buildfile content required to make libaws-lc-fips sorta work.\n\n  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips\n  produces dynlib extensions rules_rust can't see statically when it generates\n  the buildfile for the crate. Specifically the Cargo buildscript dynamically\n  produces dynlibs into a tree artifact which is not a dep of the\n  rust_library, and also creates a dynamic dependency statement which\n  rules_rust can't honor because Bazel is a static [dependency] build system.\n\n  As a workaround, we create these rules which serve only to copy the dynlib\n  artifacts out of the build.rs's results TreeArtifact and to declared output\n  locations which we can then treat as normal cc_import libraries and add to\n  the crate as compile deps.\n\n  Bazel requires that the genrule outs= attribute not be configurable, so\n  rather than having two copy rules we have to have four. Oh well.\n\"\"\"\n\ngenrule(\n    name = \"_crypto_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_crypto.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_crypto_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_crypto.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"crypto\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_crypto_linux\",\n        \"@platforms//os:macos\": \":_crypto_darwin\",\n    }),\n)\n\ngenrule(\n    name = \"_rust_wrapper_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_rust_wrapper.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_rust_wrapper_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_rust_wrapper.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"rust_wrapper\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_rust_wrapper_linux\",\n        \"@platforms//os:macos\": \":_rust_wrapper_darwin\",\n    }),\n)\n"
     },
     "aws-lc-rs 1.14.0": {
       "name": "aws-lc-rs",
@@ -256,7 +256,7 @@
         "deps": {
           "common": [
             {
-              "id": "aws-lc-fips-sys 0.13.7",
+              "id": "aws-lc-fips-sys 0.13.9",
               "target": "aws_lc_fips_sys"
             },
             {
@@ -290,7 +290,7 @@
         "link_deps": {
           "common": [
             {
-              "id": "aws-lc-fips-sys 0.13.7",
+              "id": "aws-lc-fips-sys 0.13.9",
               "target": "aws_lc_fips_sys"
             },
             {
@@ -446,133 +446,6 @@
       "license": null,
       "license_ids": [],
       "license_file": null
-    },
-    "bindgen 0.69.5": {
-      "name": "bindgen",
-      "version": "0.69.5",
-      "package_url": "https://github.com/rust-lang/rust-bindgen",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/bindgen/0.69.5/download",
-          "sha256": "271383c67ccabffb7381723dea0672a673f292304fcb45c01cc648c7a8d58088"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "bindgen",
-            "crate_root": "lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "bindgen",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "bindgen 0.69.5",
-              "target": "build_script_build"
-            },
-            {
-              "id": "bitflags 2.9.3",
-              "target": "bitflags"
-            },
-            {
-              "id": "cexpr 0.6.0",
-              "target": "cexpr"
-            },
-            {
-              "id": "clang-sys 1.8.1",
-              "target": "clang_sys"
-            },
-            {
-              "id": "itertools 0.12.1",
-              "target": "itertools"
-            },
-            {
-              "id": "lazy_static 1.5.0",
-              "target": "lazy_static"
-            },
-            {
-              "id": "lazycell 1.3.0",
-              "target": "lazycell"
-            },
-            {
-              "id": "proc-macro2 1.0.101",
-              "target": "proc_macro2"
-            },
-            {
-              "id": "quote 1.0.40",
-              "target": "quote"
-            },
-            {
-              "id": "regex 1.11.2",
-              "target": "regex"
-            },
-            {
-              "id": "rustc-hash 1.1.0",
-              "target": "rustc_hash"
-            },
-            {
-              "id": "shlex 1.3.0",
-              "target": "shlex"
-            },
-            {
-              "id": "syn 2.0.106",
-              "target": "syn"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "version": "0.69.5"
-      },
-      "build_script_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "compile_data_glob_excludes": [
-          "**/*.rs"
-        ],
-        "data_glob": [
-          "**"
-        ],
-        "link_deps": {
-          "common": [
-            {
-              "id": "clang-sys 1.8.1",
-              "target": "clang_sys"
-            }
-          ],
-          "selects": {}
-        }
-      },
-      "license": "BSD-3-Clause",
-      "license_ids": [
-        "BSD-3-Clause"
-      ],
-      "license_file": "LICENSE"
     },
     "bindgen 0.72.1": {
       "name": "bindgen",
@@ -1290,37 +1163,6 @@
       "license_ids": [],
       "license_file": null
     },
-    "doesnotcompile 0.1.0": {
-      "name": "doesnotcompile",
-      "version": "0.1.0",
-      "package_url": null,
-      "repository": null,
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "doesnotcompile",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "doesnotcompile",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2024",
-        "version": "0.1.0"
-      },
-      "license": null,
-      "license_ids": [],
-      "license_file": null
-    },
     "dunce 1.0.5": {
       "name": "dunce",
       "version": "1.0.5",
@@ -1392,74 +1234,6 @@
         ],
         "edition": "2021",
         "version": "1.15.0"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "errno 0.3.13": {
-      "name": "errno",
-      "version": "0.3.13",
-      "package_url": "https://github.com/lambda-fairy/rust-errno",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/errno/0.3.13/download",
-          "sha256": "778e2ac28f6c47af28e4907f13ffd1e1ddbd400980a9abd7c8df189bf578a5ad"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "errno",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "errno",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [],
-          "selects": {
-            "cfg(target_os = \"hermit\")": [
-              {
-                "id": "libc 0.2.175",
-                "target": "libc"
-              }
-            ],
-            "cfg(target_os = \"wasi\")": [
-              {
-                "id": "libc 0.2.175",
-                "target": "libc"
-              }
-            ],
-            "cfg(unix)": [
-              {
-                "id": "libc 0.2.175",
-                "target": "libc"
-              }
-            ],
-            "cfg(windows)": [
-              {
-                "id": "windows-sys 0.60.2",
-                "target": "windows_sys"
-              }
-            ]
-          }
-        },
-        "edition": "2018",
-        "version": "0.3.13"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -1781,56 +1555,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "home 0.5.11": {
-      "name": "home",
-      "version": "0.5.11",
-      "package_url": "https://github.com/rust-lang/cargo",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/home/0.5.11/download",
-          "sha256": "589533453244b0995c858700322199b2becb13b627df2851f64a2775d024abcf"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "home",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "home",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [],
-          "selects": {
-            "cfg(windows)": [
-              {
-                "id": "windows-sys 0.59.0",
-                "target": "windows_sys"
-              }
-            ]
-          }
-        },
-        "edition": "2021",
-        "version": "0.5.11"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "itertools 0.12.1": {
       "name": "itertools",
       "version": "0.12.1",
@@ -2049,84 +1773,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "lazy_static 1.5.0": {
-      "name": "lazy_static",
-      "version": "1.5.0",
-      "package_url": "https://github.com/rust-lang-nursery/lazy-static.rs",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/lazy_static/1.5.0/download",
-          "sha256": "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "lazy_static",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "lazy_static",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.5.0"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "lazycell 1.3.0": {
-      "name": "lazycell",
-      "version": "1.3.0",
-      "package_url": "https://github.com/indiv0/lazycell",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/lazycell/1.3.0/download",
-          "sha256": "830d08ce1d1d941e6b30645f1a0eb5643013d835ce3779a5fc208261dbe10f55"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "lazycell",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "lazycell",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.3.0"
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "libc 0.2.175": {
       "name": "libc",
       "version": "0.2.175",
@@ -2259,45 +1905,6 @@
         "ISC"
       ],
       "license_file": "LICENSE"
-    },
-    "linux-raw-sys 0.4.15": {
-      "name": "linux-raw-sys",
-      "version": "0.4.15",
-      "package_url": "https://github.com/sunfishcode/linux-raw-sys",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/linux-raw-sys/0.4.15/download",
-          "sha256": "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "linux_raw_sys",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "linux_raw_sys",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2021",
-        "version": "0.4.15"
-      },
-      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
     },
     "log 0.4.27": {
       "name": "log",
@@ -3152,45 +2759,6 @@
         "lib": "//:doesnotcompile"
       }
     },
-    "rustc-hash 1.1.0": {
-      "name": "rustc-hash",
-      "version": "1.1.0",
-      "package_url": "https://github.com/rust-lang-nursery/rustc-hash",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/rustc-hash/1.1.0/download",
-          "sha256": "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rustc_hash",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "rustc_hash",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "1.1.0"
-      },
-      "license": "Apache-2.0/MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "rustc-hash 2.1.1": {
       "name": "rustc-hash",
       "version": "2.1.1",
@@ -3224,116 +2792,6 @@
         "version": "2.1.1"
       },
       "license": "Apache-2.0 OR MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "rustix 0.38.44": {
-      "name": "rustix",
-      "version": "0.38.44",
-      "package_url": "https://github.com/bytecodealliance/rustix",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/rustix/0.38.44/download",
-          "sha256": "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rustix",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "rustix",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "bitflags 2.9.3",
-              "target": "bitflags"
-            },
-            {
-              "id": "rustix 0.38.44",
-              "target": "build_script_build"
-            }
-          ],
-          "selects": {
-            "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
-              {
-                "id": "linux-raw-sys 0.4.15",
-                "target": "linux_raw_sys"
-              }
-            ],
-            "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))": [
-              {
-                "id": "linux-raw-sys 0.4.15",
-                "target": "linux_raw_sys"
-              }
-            ],
-            "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
-              {
-                "id": "errno 0.3.13",
-                "target": "errno",
-                "alias": "libc_errno"
-              },
-              {
-                "id": "libc 0.2.175",
-                "target": "libc"
-              }
-            ],
-            "cfg(windows)": [
-              {
-                "id": "errno 0.3.13",
-                "target": "errno",
-                "alias": "libc_errno"
-              },
-              {
-                "id": "windows-sys 0.59.0",
-                "target": "windows_sys"
-              }
-            ]
-          }
-        },
-        "edition": "2021",
-        "version": "0.38.44"
-      },
-      "build_script_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "compile_data_glob_excludes": [
-          "**/*.rs"
-        ],
-        "data_glob": [
-          "**"
-        ]
-      },
-      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -4694,70 +4152,6 @@
       ],
       "license_file": "LICENSE"
     },
-    "which 4.4.2": {
-      "name": "which",
-      "version": "4.4.2",
-      "package_url": "https://github.com/harryfei/which-rs.git",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/which/4.4.2/download",
-          "sha256": "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "which",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "which",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "either 1.15.0",
-              "target": "either"
-            },
-            {
-              "id": "rustix 0.38.44",
-              "target": "rustix"
-            }
-          ],
-          "selects": {
-            "cfg(any(windows, unix, target_os = \"redox\"))": [
-              {
-                "id": "home 0.5.11",
-                "target": "home"
-              }
-            ],
-            "cfg(windows)": [
-              {
-                "id": "once_cell 1.21.3",
-                "target": "once_cell"
-              }
-            ]
-          }
-        },
-        "edition": "2021",
-        "version": "4.4.2"
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": "LICENSE.txt"
-    },
     "winapi-util 0.1.11": {
       "name": "winapi-util",
       "version": "0.1.11",
@@ -5024,54 +4418,6 @@
         },
         "edition": "2021",
         "version": "0.59.0"
-      },
-      "license": "MIT OR Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "license-apache-2.0"
-    },
-    "windows-sys 0.60.2": {
-      "name": "windows-sys",
-      "version": "0.60.2",
-      "package_url": "https://github.com/microsoft/windows-rs",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/windows-sys/0.60.2/download",
-          "sha256": "f2f500e4d28234f72040990ec9d39e3a6b950f9f22d3dba18416c35882612bcb"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "windows_sys",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "windows_sys",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "windows-targets 0.53.3",
-              "target": "windows_targets"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2021",
-        "version": "0.60.2"
       },
       "license": "MIT OR Apache-2.0",
       "license_ids": [
@@ -7188,8 +6534,7 @@
   "binary_crates": [],
   "workspace_members": {
     "aws_lc_repro 0.1.0": "aws_lc_repro",
-    "direct-cargo-bazel-deps 0.0.1": "",
-    "doesnotcompile 0.1.0": "doesnotcompile"
+    "direct-cargo-bazel-deps 0.0.1": ""
   },
   "conditions": {
     "aarch64-apple-darwin": [
@@ -7209,18 +6554,9 @@
       "aarch64-unknown-linux-gnu"
     ],
     "cfg(all(any(target_arch = \"x86_64\", target_arch = \"arm64ec\"), target_env = \"msvc\", not(windows_raw_dylib)))": [],
-    "cfg(all(any(target_os = \"android\", target_os = \"linux\"), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [],
     "cfg(all(any(target_os = \"linux\", target_os = \"android\"), not(any(all(target_os = \"linux\", target_env = \"\"), getrandom_backend = \"custom\", getrandom_backend = \"linux_raw\", getrandom_backend = \"rdrand\", getrandom_backend = \"rndr\"))))": [
       "aarch64-unknown-linux-gnu",
       "x86_64-unknown-linux-gnu"
-    ],
-    "cfg(all(not(rustix_use_libc), not(miri), target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\"))))": [
-      "aarch64-unknown-linux-gnu",
-      "x86_64-unknown-linux-gnu"
-    ],
-    "cfg(all(not(windows), any(rustix_use_libc, miri, not(all(target_os = \"linux\", any(target_endian = \"little\", target_arch = \"s390x\"), any(target_arch = \"arm\", all(target_arch = \"aarch64\", target_pointer_width = \"64\"), target_arch = \"riscv64\", all(rustix_use_experimental_asm, target_arch = \"powerpc64\"), all(rustix_use_experimental_asm, target_arch = \"s390x\"), all(rustix_use_experimental_asm, target_arch = \"mips\"), all(rustix_use_experimental_asm, target_arch = \"mips32r6\"), all(rustix_use_experimental_asm, target_arch = \"mips64\"), all(rustix_use_experimental_asm, target_arch = \"mips64r6\"), target_arch = \"x86\", all(target_arch = \"x86_64\", target_pointer_width = \"64\")))))))": [
-      "aarch64-apple-darwin",
-      "x86_64-apple-darwin"
     ],
     "cfg(all(target_arch = \"aarch64\", target_env = \"msvc\", not(windows_raw_dylib)))": [],
     "cfg(all(target_arch = \"wasm32\", target_os = \"wasi\", target_env = \"p2\"))": [],
@@ -7249,12 +6585,6 @@
       "aarch64-apple-darwin",
       "x86_64-apple-darwin"
     ],
-    "cfg(any(windows, unix, target_os = \"redox\"))": [
-      "aarch64-apple-darwin",
-      "aarch64-unknown-linux-gnu",
-      "x86_64-apple-darwin",
-      "x86_64-unknown-linux-gnu"
-    ],
     "cfg(not(all(any(target_arch = \"x86_64\", target_arch = \"aarch64\"), any(target_os = \"linux\", target_os = \"macos\"), any(target_env = \"gnu\", target_env = \"musl\", target_env = \"\"))))": [],
     "cfg(not(any(all(any(target_arch = \"x86_64\", target_arch = \"aarch64\"), any(target_os = \"linux\", target_os = \"macos\", target_os = \"windows\"), any(target_env = \"gnu\", target_env = \"musl\", target_env = \"msvc\", target_env = \"\")), all(target_arch = \"x86\", target_os = \"windows\", target_env = \"msvc\"), all(target_arch = \"x86\", target_os = \"linux\", target_env = \"gnu\"))))": [],
     "cfg(not(windows_raw_dylib))": [
@@ -7265,7 +6595,6 @@
     ],
     "cfg(target_arch = \"wasm32\")": [],
     "cfg(target_os = \"android\")": [],
-    "cfg(target_os = \"hermit\")": [],
     "cfg(target_os = \"macos\")": [
       "aarch64-apple-darwin",
       "x86_64-apple-darwin"
