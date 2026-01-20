@@ -40,7 +40,7 @@ http_archive(
 load("@rules_rust//rust:repositories.bzl", "rules_rust_dependencies", "rust_register_toolchains")
 
 # Rust toolchain version used across all builds.
-RUST_VERSION = "1.86.0"
+RUST_VERSION = "1.88.0"
 
 # Target platforms for cross-compilation.
 SUPPORTED_PLATFORMS = [
@@ -59,12 +59,12 @@ rust_register_toolchains(
     edition = "2021",
     extra_target_triples = SUPPORTED_PLATFORMS,
     sha256s = {
-        "rustc-1.86.0-aarch64-apple-darwin.tar.xz": "23b8f52102249a47ab5bc859d54c9a3cb588a3259ba3f00f557d50edeca4fde9",
-        "clippy-1.86.0-aarch64-apple-darwin.tar.xz": "239fa3a604b124f0312f2af08537874a1227dba63385484b468cca62e7c4f2f2",
-        "cargo-1.86.0-aarch64-apple-darwin.tar.xz": "3cb13873d48c3e1e4cc684d42c245226a11fba52af6b047c3346ed654e7a05c0",
-        "rustfmt-1.86.0-aarch64-apple-darwin.tar.xz": "45e2d3543ea1abc2aa5dad894452c848bf2c75df83c8b175c418166baee09d37",
-        "llvm-tools-1.86.0-aarch64-apple-darwin.tar.xz": "04d3618c686845853585f036e3211eb9e18f2d290f4610a7a78bdc1fcce1ebd9",
-        "rust-std-1.86.0-aarch64-apple-darwin.tar.xz": "0fb121fb3b8fa9027d79ff598500a7e5cd086ddbc3557482ed3fdda00832c61b",
+        "rustc-1.88.0-aarch64-apple-darwin.tar.xz": "249f4cacd3fac1f718af19373c73e9d3b9a595965972d8b1f3947c578110f520",
+        "clippy-1.88.0-aarch64-apple-darwin.tar.xz": "9ad90cddc3ebd892c9d69c9ecd45c30d236e1e4af5993312c6f4538af9dcf3e7",
+        "cargo-1.88.0-aarch64-apple-darwin.tar.xz": "71c08c8fab9b7a9cd13b6119886d50ce48efa8261d08e1fd328ed3ee1c84e2e0",
+        "rustfmt-1.88.0-aarch64-apple-darwin.tar.xz": "bc904434ecdd6587ef8eea351e626216c84e59d7ecc95c9e4416084e4dd82e86",
+        "llvm-tools-1.88.0-aarch64-apple-darwin.tar.xz": "c9bf981651b573d2abb619a5b3ae038686772e51e7ec53a8b5e585c51c1431e5",
+        "rust-std-1.88.0-aarch64-apple-darwin.tar.xz": "532be07511af557cb67f33bfc77044a787363ab281b963752542bc837ce90e96",
     },
     versions = [RUST_VERSION],
 )
