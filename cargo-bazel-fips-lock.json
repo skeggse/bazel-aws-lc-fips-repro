@@ -1,5 +1,5 @@
 {
-  "checksum": "27c950170e02106059939bfeb2ac9bae583f4935530ff6ad1afb3e3c415da5c1",
+  "checksum": "05d99fa4b9055d657fe1cea63c6b6f44b9646c3262b0391ce6fe8f487f5bc562",
   "crates": {
     "aho-corasick 1.1.3": {
       "name": "aho-corasick",
@@ -56,14 +56,14 @@
       ],
       "license_file": "LICENSE-MIT"
     },
-    "aws-lc-fips-sys 0.13.9": {
+    "aws-lc-fips-sys 0.13.12": {
       "name": "aws-lc-fips-sys",
-      "version": "0.13.9",
+      "version": "0.13.12",
       "package_url": "https://github.com/aws/aws-lc-rs",
       "repository": {
         "Http": {
-          "url": "https://static.crates.io/crates/aws-lc-fips-sys/0.13.9/download",
-          "sha256": "ede71ad84efb06d748d9af3bc500b14957a96282a69a6833b1420dcacb411cc3",
+          "url": "https://static.crates.io/crates/aws-lc-fips-sys/0.13.12/download",
+          "sha256": "5ed8cd42adddefbdb8507fb7443fa9b666631078616b78f70ed22117b5c27d90",
           "patch_args": [
             "-p1"
           ],
@@ -107,7 +107,7 @@
         "deps": {
           "common": [
             {
-              "id": "aws-lc-fips-sys 0.13.9",
+              "id": "aws-lc-fips-sys 0.13.12",
               "target": "build_script_main"
             }
           ],
@@ -121,7 +121,7 @@
           "selects": {}
         },
         "edition": "2021",
-        "version": "0.13.9"
+        "version": "0.13.12"
       },
       "build_script_attrs": {
         "compile_data_glob": [
@@ -190,7 +190,7 @@
           ],
           "selects": {}
         },
-        "links": "aws_lc_fips_0_13_9",
+        "links": "aws_lc_fips_0_13_12",
         "toolchains": [
           "@rules_foreign_cc//toolchains:current_cmake_toolchain"
         ]
@@ -202,7 +202,7 @@
         "OpenSSL"
       ],
       "license_file": "LICENSE",
-      "additive_build_file_content": "\"\"\"\nHACK (reid@aspect.build 2025-08-27):\n  Additive buildfile content required to make libaws-lc-fips sorta work.\n\n  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips\n  produces dynlib extensions rules_rust can't see statically when it generates\n  the buildfile for the crate. Specifically the Cargo buildscript dynamically\n  produces dynlibs into a tree artifact which is not a dep of the\n  rust_library, and also creates a dynamic dependency statement which\n  rules_rust can't honor because Bazel is a static [dependency] build system.\n\n  As a workaround, we create these rules which serve only to copy the dynlib\n  artifacts out of the build.rs's results TreeArtifact and to declared output\n  locations which we can then treat as normal cc_import libraries and add to\n  the crate as compile deps.\n\n  Bazel requires that the genrule outs= attribute not be configurable, so\n  rather than having two copy rules we have to have four. Oh well.\n\"\"\"\n\ngenrule(\n    name = \"_crypto_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_crypto.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_crypto_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_crypto.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"crypto\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_crypto_linux\",\n        \"@platforms//os:macos\": \":_crypto_darwin\",\n    }),\n)\n\ngenrule(\n    name = \"_rust_wrapper_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_rust_wrapper.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_rust_wrapper_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_9_rust_wrapper.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"rust_wrapper\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_rust_wrapper_linux\",\n        \"@platforms//os:macos\": \":_rust_wrapper_darwin\",\n    }),\n)\n"
+      "additive_build_file_content": "\"\"\"\nHACK (reid@aspect.build 2025-08-27):\n  Additive buildfile content required to make libaws-lc-fips sorta work.\n\n  Unfortunately the underlying cgo + cmake build.rs mess in libaws-lc-fips\n  produces dynlib extensions rules_rust can't see statically when it generates\n  the buildfile for the crate. Specifically the Cargo buildscript dynamically\n  produces dynlibs into a tree artifact which is not a dep of the\n  rust_library, and also creates a dynamic dependency statement which\n  rules_rust can't honor because Bazel is a static [dependency] build system.\n\n  As a workaround, we create these rules which serve only to copy the dynlib\n  artifacts out of the build.rs's results TreeArtifact and to declared output\n  locations which we can then treat as normal cc_import libraries and add to\n  the crate as compile deps.\n\n  Bazel requires that the genrule outs= attribute not be configurable, so\n  rather than having two copy rules we have to have four. Oh well.\n\"\"\"\n\ngenrule(\n    name = \"_crypto_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_12_crypto.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_crypto_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_12_crypto.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"crypto\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_crypto_linux\",\n        \"@platforms//os:macos\": \":_crypto_darwin\",\n    }),\n)\n\ngenrule(\n    name = \"_rust_wrapper_darwin\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_12_rust_wrapper.dylib\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ngenrule(\n    name = \"_rust_wrapper_linux\",\n    srcs = [\":build_script_main\"],\n    outs = [\n        \"libaws_lc_fips_0_13_12_rust_wrapper.so\",\n    ],\n    cmd = \"ln $(location :build_script_main)/build/artifacts/$$(basename $@) $@\",\n)\n\ncc_import(\n    name = \"rust_wrapper\",\n    shared_library = select({\n        \"@platforms//os:linux\": \":_rust_wrapper_linux\",\n        \"@platforms//os:macos\": \":_rust_wrapper_darwin\",\n    }),\n)\n"
     },
     "aws-lc-rs 1.14.0": {
       "name": "aws-lc-rs",
@@ -256,7 +256,7 @@
         "deps": {
           "common": [
             {
-              "id": "aws-lc-fips-sys 0.13.9",
+              "id": "aws-lc-fips-sys 0.13.12",
               "target": "aws_lc_fips_sys"
             },
             {
@@ -290,7 +290,7 @@
         "link_deps": {
           "common": [
             {
-              "id": "aws-lc-fips-sys 0.13.9",
+              "id": "aws-lc-fips-sys 0.13.12",
               "target": "aws_lc_fips_sys"
             },
             {
